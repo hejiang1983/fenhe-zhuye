@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>质数大挑战</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+
+        #gamePanel {
+            margin: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: 10px auto;
+        }
+
+        td {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ddd;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        td.selected {
+            background-color: #e0e0e0;
+        }
+
+        td.correct {
+            background-color: #90EE90 !important;
+        }
+
+        td.wrong {
+            background-color: #FFB6C1 !important;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s;
+            background-color: #4CAF50;
+        }
+
+        button.playing {
+            background-color: #ff4444 !important;
+        }
+
+        button.playing:hover {
+            background-color: #cc0000 !important;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #info {
+            font-size: 20px;
+            margin: 10px;
+            color: #333;
+            display: flex;
+            gap: 20px;
+        }
+
+        #gameOver {
+            font-size: 20px;
+            color: #ff4444;
+            margin-top: 10px;
+            height: 24px;
+        }
+
+        .instruction {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin: 10px 0;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div>剩余时间：<span id="timer">60</span>秒</div>
+        <div>当前得分：<span id="score">0</span>分</div>
+    </div>
+    
+    <button onclick="startGame()">开始游戏</button>
+    <div class="instruction">
+        游戏说明：一分钟之内找对一个质数加4分，找错扣2分，最终得分最高获胜
+    </div>
+    <div id="gameOver"></div>
+
+    <div id="gamePanel">
+        <table id="numberGrid"></table>
+    </div>
+
+    <script>
+        let score = 0;
+        let timeLeft = 60;
+        let timerId = null;
+        let gameStarted = false;
+        const startButton = document.querySelector('button');
+
+        // 生成数字表格
+        function createGrid() {
+            let table = document.getElementById("numberGrid");
+            let number = 0;
+            
+            for(let i=0; i<10; i++){
+                let row = table.insertRow();
+                for(let j=0; j<10; j++){
+                    let cell = row.insertCell();
+                    cell.textContent = number;
+                    cell.onclick = handleClick;
+                    number++;
+                }
+            }
+        }
+
+        // 判断质数
+        function isPrime(num) {
+            if(num <= 1) return false;
+            if(num === 2) return true;
+            for(let i=2; i<=Math.sqrt(num); i++){
+                if(num % i === 0) return false;
+            }
+            return true;
+        }
+
+        // 处理点击事件（已修改为加4分）
+        function handleClick() {
+            if(!gameStarted || this.classList.contains('selected')) return;
+            
+            let num = parseInt(this.textContent);
+            let isPrimeNumber = isPrime(num);
+            
+            this.classList.add('selected');
+            if(isPrimeNumber) {
+                score += 4; // 修改为加4分
+                this.classList.add('correct');
+            } else {
+                score -=2;
+                this.classList.add('wrong');
+            }
+            
+            document.getElementById("score").textContent = score;
+        }
+
+        // 开始游戏
+        function startGame() {
+            if(gameStarted) return;
+            
+            // 重置游戏状态
+            score = 0;
+            timeLeft = 60;
+            gameStarted = true;
+            document.getElementById("score").textContent = 0;
+            document.getElementById("gameOver").textContent = '';
+            startButton.classList.add('playing');
+            startButton.textContent = '游戏中...';
+
+            // 重置表格样式
+            let cells = document.getElementsByTagName('td');
+            for(let cell of cells){
+                cell.className = '';
+            }
+
+            // 启动计时器
+            timerId = setInterval(() => {
+                timeLeft--;
+                document.getElementById("timer").textContent = timeLeft;
+                
+                if(timeLeft <= 0) {
+                    clearInterval(timerId);
+                    gameStarted = false;
+                    startButton.classList.remove('playing');
+                    startButton.textContent = '开始游戏';
+                    document.getElementById("gameOver").textContent = `时间到！最终得分：${score}分`;
+                }
+            }, 1000);
+        }
+
+        // 初始化数字表格
+        createGrid();
+    </script>
+</body>
+</html>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>新城区团结小学公文专用转Word工具 (最终完美版)</title>
+    
+    <script>
+        if (!Array.prototype.at) {
+            Array.prototype.at = function(n) {
+                n = Math.trunc(n) || 0;
+                if (n < 0) n += this.length;
+                if (n < 0 || n >= this.length) return undefined;
+                return this[n];
+            };
+        }
+        if (!String.prototype.at) {
+            String.prototype.at = function(n) {
+                n = Math.trunc(n) || 0;
+                if (n < 0) n += this.length;
+                if (n < 0 || n >= this.length) return undefined;
+                return String(this).charAt(n);
+            };
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.2.4/build/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    
+    <script>
+        let isMathJaxReady = false;
+        window.MathJax = {
+            tex: { 
+                inlineMath: [['$', '$'], ['\\(', '\\)']], 
+                displayMath: [['$$', '$$'], ['\\[', '\\]']] 
+            },
+            svg: { fontCache: 'local' }, 
+            startup: { 
+                typeset: false,
+                pageReady: function() {
+                    return MathJax.startup.defaultPageReady().then(function() {
+                        isMathJaxReady = true;
+                        if (typeof updatePreview === 'function') updatePreview();
+                    });
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "微软雅黑", sans-serif; }
+        body { background: #f5f9f7; padding: 20px 20px 30px 20px; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* 头部及作者信息样式 */
+        .header { text-align: center; margin-bottom: 25px; flex-shrink: 0; }
+        .header h1 { color: #2a7d5f; font-size: 26px; margin-bottom: 8px; letter-spacing: 1px; }
+        .author-info { color: #7f8c8d; font-size: 14px; font-weight: bold; letter-spacing: 2px; margin-top: 5px; }
+        
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; min-height: 0; }
+        .panel { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 15px; display: flex; flex-direction: column; min-height: 0; }
+        .panel-title { color: #2a7d5f; font-size: 16px; font-weight: bold; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #38b09d; flex-shrink: 0; }
+        #markdown-input { flex: 1; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; font-size: 14px; line-height: 1.6; resize: none; font-family: "Consolas", monospace; min-height: 0; overflow-y: auto; }
+        #preview { flex: 1; border: 1px solid #e0e0e0; border-radius: 6px; padding: 40px; overflow-y: auto; min-height: 0; background: white; }
+
+        /* 桌面端标准预览样式（对应Word真实比例） */
+        #preview h1, #preview h2, #preview h3, #preview h4, #preview p { margin: 0; }
+        #preview h1 { font-family: "方正小标宋简体", "宋体", serif; font-size: 29px; text-align: center; line-height: 30pt; } 
+        #preview .Subtitle { font-family: "楷体_GB2312", "楷体", serif; font-size: 29px; text-align: center; text-indent: 0; line-height: 28pt; } 
+        #preview .AuthorLine { font-family: "楷体_GB2312", "楷体", serif; font-size: 21px; text-align: center; text-indent: 0; line-height: 28pt; } 
+        #preview .EmptyLine { height: 28pt; margin: 0; } 
+        #preview h2 { font-family: "黑体", sans-serif; font-size: 21px; font-weight: normal; text-indent: 0; line-height: 28pt;} 
+        #preview h3 { font-family: "楷体_GB2312", "楷体", serif; font-size: 21px; font-weight: bold; text-indent: 0; line-height: 28pt;} 
+        #preview h4 { font-family: "仿宋_GB2312", "仿宋", serif; font-size: 21px; font-weight: bold; text-indent: 0; line-height: 28pt;} 
+        #preview .StandardText { font-family: "仿宋_GB2312", "仿宋", serif; font-size: 21px; text-indent: 2em; text-align: justify; line-height: 28pt; } 
+        #preview .Signatory { font-family: "仿宋_GB2312", "仿宋", serif; font-size: 21px; text-indent: 0; text-align: right; padding-right: 2em; line-height: 28pt; } 
+        #preview table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        #preview th, #preview td { border: 1px solid #000; padding: 8px; text-align: center; font-size: 21px; line-height: 28pt; }
+        #preview th { font-family: "黑体", sans-serif; font-weight: normal; }
+        #preview td { font-family: "仿宋_GB2312", "仿宋", serif; }
+        #preview .red-header { text-align: center; font-size: 24px; font-family: "方正小标宋简体", serif; font-weight: bold; margin: 20px 0 10px; color: #c8102e; }
+        #preview .red-line { border-bottom: 2px solid #c8102e; margin: 10px 0 20px; }
+        #preview .doc-number { text-align: center; font-size: 21px; font-family: "仿宋_GB2312", serif; margin-bottom: 30px; line-height: 28pt; }
+
+        .btn-group { margin-top: 25px; text-align: center; flex-shrink: 0; }
+        .btn { background: #38b09d; color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 6px; cursor: pointer; margin: 0 10px; transition: background 0.3s; font-weight: bold; }
+        .btn:hover { background: #2a7d5f; }
+        .btn-primary { background: #2a7d5f; }
+        .btn-red { background: #c8102e; }
+        .btn-red:hover { background: #a00d25; }
+        .btn-gray { background: #95a5a6; }
+        .btn-gray:hover { background: #7f8c8d; }
+
+        /* 响应式布局：完美解决底部按钮被遮挡及排列问题 */
+        @media (max-width: 768px) {
+            body { 
+                height: auto; 
+                min-height: 100%; 
+                padding: 15px 10px 100px 10px; 
+                display: block; 
+            }
+            .header { margin-bottom: 15px; }
+            .header h1 { font-size: 22px; }
+            .container { display: flex; flex-direction: column; gap: 15px; }
+            .panel { min-height: 350px; flex: none; }
+            #preview { padding: 20px 15px; }
+            
+            .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+            .btn { margin: 0; flex: 1 1 45%; padding: 14px 5px; font-size: 15px; }
+            .btn-primary { flex: 1 1 100%; padding: 16px 10px; font-size: 18px; margin-top: 5px; }
+
+            #preview h1 { font-size: 22px; line-height: 1.5; } 
+            #preview .Subtitle { font-size: 18px; line-height: 1.5; } 
+            #preview .AuthorLine { font-size: 16px; line-height: 1.5; } 
+            #preview h2 { font-size: 18px; line-height: 1.5;} 
+            #preview h3 { font-size: 16px; line-height: 1.5;} 
+            #preview h4 { font-size: 16px; line-height: 1.5;} 
+            #preview .StandardText { font-size: 16px; line-height: 1.6; } 
+            #preview .Signatory { font-size: 16px; line-height: 1.6; } 
+            #preview th, #preview td { font-size: 14px; line-height: 1.4; padding: 4px; }
+            #preview .red-header { font-size: 20px; margin: 15px 0 5px; }
+            #preview .doc-number { font-size: 16px; margin-bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>新城区团结小学 公文专用转Word工具</h1>
+        <div class="author-info">作者：何学江</div>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-title">第一步：粘贴AI生成的内容</div>
+            <textarea id="markdown-input" placeholder="把AI生成的内容粘贴到这里..."></textarea>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">第二步：实时预览排版效果</div>
+            <div id="preview">
+                <div style="text-align:center; padding: 40px; color: #666;">正在初始化排版引擎...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-red" onclick="insertRedHeader()">一键插入红头</button>
+        <button class="btn btn-gray" onclick="clearContent()">一键清空</button>
+        <button class="btn" onclick="undoEdit()">返回上一步</button>
+        <button class="btn btn-primary" onclick="exportToWord()">直接导出为 Word</button>
+    </div>
+
+    <script>
+        let textHistory = [];
+        let historyIndex = -1;
+
+        function saveHistory(val) {
+            if (historyIndex >= 0 && textHistory[historyIndex] === val) return;
+            textHistory = textHistory.slice(0, historyIndex + 1);
+            textHistory.push(val);
+            if (textHistory.length > 50) textHistory.shift();
+            historyIndex = textHistory.length - 1;
+        }
+
+        function undoEdit() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                const input = document.getElementById('markdown-input');
+                input.value = textHistory[historyIndex];
+                updatePreview();
+            } else {
+                const btn = document.querySelector('.btn-group .btn:nth-child(3)');
+                const originalText = btn.textContent;
+                btn.textContent = "已是最初状态！";
+                setTimeout(() => btn.textContent = originalText, 1500);
+            }
+        }
+
+        function clearContent() {
+            const input = document.getElementById('markdown-input');
+            if (input.value.trim() === '') return;
+            saveHistory(input.value); 
+            input.value = '';
+            saveHistory(''); 
+            updatePreview();
+            input.focus();
+        }
+
+        // ==========================================
+        // 核心修改：重新编写了能体现所有功能的初始排版示例
+        // 包含公文标题结构、块级/内联公式、带公式的表格、Emoji
+        // ==========================================
+        window.onload = function() { 
+            const defaultText = "# 📘 关于开展2026年数学素养测评的通知\n" +
+                "新城区团结小学教务处  张三\n\n" +
+                "## 一、测评核心目标\n" +
+                "为检验阶段性教学成果，本次测评将重点考察复杂公式的推导与应用：\n" +
+                "$$S = \\frac{A \\times B}{C^2} + \\sqrt{D}$$\n" +
+                "同时，要求学生能熟练掌握同分母分数运算，例如独立求出 $\\frac{1}{9} + \\frac{4}{9}$ 的正确结果。\n\n" +
+                "## 二、考场及考点安排\n" +
+                "请各年级班主任参照下表，提前做好考场布置工作：\n\n" +
+                "| 测试年级 | 考试场地 | 监考教师 | 核心考察内容示例 |\n" +
+                "| :--- | :---: | :---: | :--- |\n" +
+                "| 三年级 | 教学楼101 | 王老师 | 加法结合律：\\( (a+b)+c = a+(b+c) \\) |\n" +
+                "| 四年级 | 教学楼202 | 李老师 | 基础面积计算：\\( S = a \\times b \\) |\n" +
+                "| 五年级 | 阶梯教室 | 赵老师 | 梯形面积公式：\\( S=(a+b)h \\div 2 \\) |\n\n" +
+                "新城区团结小学教务处\n" +
+                "2026年4月29日";
+                
+            const input = document.getElementById('markdown-input');
+            input.value = defaultText;
+            saveHistory(defaultText); 
+            updatePreview(); 
+        };
+
+        let previewTimeout = null;
+        let historyTimeout = null;
+
+        document.getElementById('markdown-input').addEventListener('input', (e) => {
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(updatePreview, 600);
+
+            clearTimeout(historyTimeout);
+            historyTimeout = setTimeout(() => {
+                saveHistory(e.target.value);
+            }, 1000);
+        });
+
+        function insertRedHeader() {
+            const input = document.getElementById('markdown-input');
+            saveHistory(input.value);
+            const redHeader = `[红头]新城区团结小学文件[/红头]\n新团小发〔2026〕×号\n\n`;
+            input.value = redHeader + input.value;
+            saveHistory(input.value);
+            updatePreview();
+            input.scrollTop = 0;
+        }
+
+        function svgToImageNode(svgElement, isDisplay) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                let svgData = new XMLSerializer().serializeToString(svgElement);
+                svgData = svgData.replace(/currentColor/g, '#000000');
+                if (!svgData.includes('xmlns="http://www.w3.org/2000/svg"')) {
+                    svgData = svgData.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+                }
+                const wEx = parseFloat(svgElement.getAttribute('width')) || 2;
+                const hEx = parseFloat(svgElement.getAttribute('height')) || 2;
+                const exToPx = isDisplay ? 12 : 10.5; 
+                const scale = 3; 
+                const basePxWidth = wEx * exToPx; 
+                const basePxHeight = hEx * exToPx;
+                const padding = isDisplay ? 8 : 0;
+                canvas.width = (basePxWidth + padding * 2) * scale;
+                canvas.height = (basePxHeight + padding * 2) * scale;
+
+                const img = new Image();
+                img.onload = () => {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = "high";
+                    ctx.drawImage(img, padding * scale, padding * scale, basePxWidth * scale, basePxHeight * scale);
+                    const base64 = canvas.toDataURL('image/png');
+                    const outImg = document.createElement('img');
+                    outImg.src = base64;
+                    outImg.className = isDisplay ? 'math-display' : 'math-inline';
+                    const finalWidth = basePxWidth + padding * 2;
+                    const finalHeight = basePxHeight + padding * 2;
+                    outImg.style.width = finalWidth + 'px';
+                    outImg.style.height = finalHeight + 'px';
+                    outImg.setAttribute('data-w', finalWidth);
+                    outImg.setAttribute('data-h', finalHeight);
+                    if (!isDisplay) outImg.style.verticalAlign = 'middle';
+                    else { outImg.style.display = 'block'; outImg.style.margin = '10px auto'; }
+                    resolve(outImg);
+                };
+                img.onerror = () => resolve(document.createTextNode('[公式渲染错误]'));
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            });
+        }
+
+        async function parseToDOM(markdown) {
+            let mathMatches = [];
+            markdown = markdown.replace(/\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]/g, (match, p1, p2) => {
+                mathMatches.push({ tex: p1 || p2, display: true });
+                return `\n\n%%%MATH${mathMatches.length - 1}%%%\n\n`;
+            });
+            markdown = markdown.replace(/\$([^\n]*?)\$|\\\(([\s\S]*?)\\\)/g, (match, p1, p2) => {
+                mathMatches.push({ tex: p1 || p2, display: false });
+                return `%%%MATH${mathMatches.length - 1}%%%`;
+            });
+            markdown = markdown.replace(/\[红头\](.*?)\[\/红头\]/g, '<div class="red-header">$1</div><div class="red-line"></div>');
+            markdown = markdown.replace(/(新团小发.*?号)/g, '<div class="doc-number">$1</div>');
+            
+            let html = marked.parse(markdown, { breaks: true });
+            html = html.replace(/<br\s*\/?>/gi, '</p><p>'); 
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+
+            tempDiv.querySelectorAll('p').forEach(p => { if (!p.textContent.trim() && p.children.length === 0) p.remove(); });
+            
+            const lists = Array.from(tempDiv.querySelectorAll('ol, ul')).reverse();
+            lists.forEach(list => {
+                const isOrdered = list.tagName === 'OL';
+                Array.from(list.children).forEach((li, index) => {
+                    if (li.tagName !== 'LI') return;
+                    const prefix = isOrdered ? (index + 1) + ". " : "· ";
+                    
+                    const inlineNodes = [];
+                    while (li.firstChild) {
+                        const child = li.firstChild;
+                        if (['P','DIV','TABLE','UL','OL','H1','H2','H3','H4'].includes(child.tagName)) {
+                            break;
+                        }
+                        inlineNodes.push(child);
+                        li.removeChild(child);
+                    }
+                    
+                    if (inlineNodes.length > 0 || !li.firstChild) {
+                        const newP = document.createElement('p');
+                        newP.appendChild(document.createTextNode(prefix));
+                        inlineNodes.forEach(n => newP.appendChild(n));
+                        list.parentNode.insertBefore(newP, list);
+                    } else if (li.firstChild && li.firstChild.tagName === 'P') {
+                        const firstP = li.firstChild;
+                        firstP.insertBefore(document.createTextNode(prefix), firstP.firstChild);
+                    }
+                    
+                    while (li.firstChild) {
+                        list.parentNode.insertBefore(li.firstChild, list);
+                    }
+                });
+                list.remove();
+            });
+
+            if (mathMatches.length > 0 && isMathJaxReady) {
+                const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
+                const nodesToModify = [];
+                let textNode;
+                while (textNode = walker.nextNode()) { if (textNode.nodeValue.includes('%%%MATH')) nodesToModify.push(textNode); }
+                for (let textNode of nodesToModify) {
+                    const text = textNode.nodeValue;
+                    const regex = /%%%MATH(\d+)%%%/g;
+                    let match; let lastIndex = 0; const fragment = document.createDocumentFragment();
+                    while ((match = regex.exec(text)) !== null) {
+                        const index = match.index;
+                        if (index > lastIndex) fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+                        const mathIndex = parseInt(match[1]);
+                        const mathDef = mathMatches[mathIndex];
+                        try {
+                            const mathElement = MathJax.tex2svg(mathDef.tex, {display: mathDef.display});
+                            const svgElement = mathElement.querySelector('svg');
+                            if (svgElement) { const img = await svgToImageNode(svgElement, mathDef.display); fragment.appendChild(img); }
+                        } catch (e) { fragment.appendChild(document.createTextNode('[公式解析错误]')); }
+                        lastIndex = regex.lastIndex;
+                    }
+                    if (lastIndex < text.length) fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+                    textNode.parentNode.replaceChild(fragment, textNode);
+                }
+            }
+
+            const elements = Array.from(tempDiv.children);
+            let firstH2Index = elements.findIndex(el => el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'H4' || el.tagName === 'TABLE');
+            if (firstH2Index === -1) firstH2Index = elements.length;
+            let unitNameCandidates = [];
+            elements.forEach((el, index) => {
+                if (el.className === 'doc-number' || el.className === 'red-header' || el.className === 'red-line') return;
+                if (el.tagName === 'P') {
+                    const isBlockMath = el.children.length === 1 && el.children[0].className === 'math-display';
+                    if (isBlockMath) { el.style.textIndent = '0'; el.style.textAlign = 'center'; return; }
+                    const text = el.textContent.trim();
+                    if (index < firstH2Index && text.match(/^[（\(].*[）\)]$/)) el.className = 'Subtitle'; 
+                    else if (index < firstH2Index) { el.className = 'AuthorLine'; unitNameCandidates.push(el); }
+                    else if (index >= firstH2Index && (text.includes("小学") || text.includes("处") || text.includes("室") || /^\d{4}年\d{1,2}月\d{1,2}日$/.test(text))) {
+                        if (text.length < 25) el.className = 'Signatory'; 
+                        else el.className = 'StandardText';
+                    } else el.className = 'StandardText'; 
+                }
+            });
+            if (unitNameCandidates.length > 0) {
+                const emptyP = document.createElement('p'); emptyP.className = 'EmptyLine';
+                unitNameCandidates[unitNameCandidates.length - 1].after(emptyP);
+            }
+            return tempDiv;
+        }
+
+        async function updatePreview() {
+            if (!isMathJaxReady) {
+                document.getElementById('preview').innerHTML = `<div style="text-align:center; padding: 40px; color: #666; font-family: '微软雅黑';"><div style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #2a7d5f;">公式引擎正在加载中...</div></div>`;
+                return;
+            }
+            const markdown = document.getElementById('markdown-input').value;
+            const tempDiv = await parseToDOM(markdown);
+            document.getElementById('preview').innerHTML = tempDiv.innerHTML;
+        }
+
+        async function exportToWord() {
+            try {
+                if (typeof docx === 'undefined') { alert("排版引擎未加载。"); return; }
+                const markdown = document.getElementById('markdown-input').value;
+                const tempDiv = await parseToDOM(markdown);
+
+                let exportFileName = "新城区团结小学公文"; 
+                const h1Node = tempDiv.querySelector('h1');
+                if (h1Node && h1Node.textContent.trim()) {
+                    exportFileName = h1Node.textContent.trim().replace(/[\\/:*?"<>|]/g, '');
+                } else {
+                    const h2Node = tempDiv.querySelector('h2');
+                    if (h2Node && h2Node.textContent.trim()) {
+                        exportFileName = h2Node.textContent.trim().replace(/[\\/:*?"<>|]/g, '');
+                    }
+                }
+
+                const EXACT_28_PT = { line: 560, lineRule: "exact", before: 0, after: 0 };
+                const EXACT_30_PT = { line: 600, lineRule: "exact", before: 0, after: 0 };
+
+                const doc = new docx.Document({
+                    sections: [{
+                        properties: { page: { margin: { top: 2098, bottom: 1814, left: 1588, right: 1474 } } },
+                        children: (function() {
+                            const children = [];
+                            
+                            function getRuns(node, fontOptions) {
+                                const runs = [];
+                                function processTextWithEmojis(text, isBold, isItalics) {
+                                    const emojiRegex = /(\p{Emoji_Presentation}|\p{Extended_Pictographic})/gu;
+                                    let lastIndex = 0; let match;
+                                    while ((match = emojiRegex.exec(text)) !== null) {
+                                        if (match.index > lastIndex) runs.push(new docx.TextRun({ text: text.substring(lastIndex, match.index), bold: isBold, italics: isItalics, ...fontOptions }));
+                                        runs.push(new docx.TextRun({ text: match[0], bold: isBold, italics: isItalics, ...fontOptions, font: "Segoe UI Emoji" }));
+                                        lastIndex = emojiRegex.lastIndex;
+                                    }
+                                    if (lastIndex < text.length) runs.push(new docx.TextRun({ text: text.substring(lastIndex), bold: isBold, italics: isItalics, ...fontOptions }));
+                                }
+                                node.childNodes.forEach(child => {
+                                    if (child.nodeType === Node.TEXT_NODE) {
+                                        const txt = child.textContent.replace(/[\n\r]/g, ''); if (txt) processTextWithEmojis(txt, false, false);
+                                    } else if (child.tagName === 'STRONG' || child.tagName === 'B') {
+                                        const txt = child.textContent.replace(/[\n\r]/g, ''); if (txt) processTextWithEmojis(txt, true, false);
+                                    } else if (child.tagName === 'EM' || child.tagName === 'I') {
+                                        const txt = child.textContent.replace(/[\n\r]/g, ''); if (txt) processTextWithEmojis(txt, false, true);
+                                    } else if (child.tagName === 'IMG' && child.src.startsWith('data:image/png;base64,')) {
+                                        const base64 = child.src.split(',')[1];
+                                        const binary_string = window.atob(base64); const len = binary_string.length;
+                                        const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) bytes[i] = binary_string.charCodeAt(i);
+                                        const w = parseFloat(child.getAttribute('data-w')) || 20; const h = parseFloat(child.getAttribute('data-h')) || 20;
+                                        runs.push(new docx.ImageRun({ data: bytes.buffer, transformation: { width: w, height: h } }));
+                                    } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName !== 'IMG') {
+                                        const txt = child.textContent.replace(/[\n\r]/g, ''); 
+                                        if (txt) processTextWithEmojis(txt, false, false);
+                                    }
+                                });
+                                if (runs.length === 0) runs.push(new docx.TextRun({ text: "", ...fontOptions }));
+                                return runs;
+                            }
+
+                            Array.from(tempDiv.children).forEach(node => {
+                                if (node.className === 'red-header') {
+                                    children.push(new docx.Paragraph({ children: [new docx.TextRun({ text: node.textContent, font: "方正小标宋简体", size: 44, bold: true, color: "c8102e" })], alignment: docx.AlignmentType.CENTER, spacing: EXACT_28_PT }));
+                                    return;
+                                }
+                                if (node.className === 'red-line') {
+                                    children.push(new docx.Paragraph({ text: "", border: { bottom: { style: docx.BorderStyle.SINGLE, size: 8, color: "c8102e" } }, spacing: { line: 560, lineRule: "exact", before: 0, after: 120 } }));
+                                    return;
+                                }
+                                if (node.className === 'doc-number') {
+                                    children.push(new docx.Paragraph({ children: [new docx.TextRun({ text: node.textContent.replace(/\s+/g, ''), font: "仿宋_GB2312", size: 32 })], alignment: docx.AlignmentType.CENTER, spacing: { line: 560, lineRule: "exact", before: 0, after: 480 } }));
+                                    return;
+                                }
+                                if (node.tagName === 'H1') children.push(new docx.Paragraph({ children: getRuns(node, { font: "方正小标宋简体", size: 44 }), alignment: docx.AlignmentType.CENTER, spacing: EXACT_30_PT }));
+                                // 修改点：将 H2, H3, H4 的 alignment 改为 LEFT
+                                else if (node.tagName === 'H2') children.push(new docx.Paragraph({ children: getRuns(node, { font: "黑体", size: 32 }), alignment: docx.AlignmentType.LEFT, indent: { firstLine: 0 }, spacing: EXACT_28_PT }));
+                                else if (node.tagName === 'H3') children.push(new docx.Paragraph({ children: getRuns(node, { font: "楷体_GB2312", size: 32, bold: true }), alignment: docx.AlignmentType.LEFT, indent: { firstLine: 0 }, spacing: EXACT_28_PT }));
+                                else if (node.tagName === 'H4') children.push(new docx.Paragraph({ children: getRuns(node, { font: "仿宋_GB2312", size: 32, bold: true }), alignment: docx.AlignmentType.LEFT, indent: { firstLine: 0 }, spacing: EXACT_28_PT }));
+                                else if (node.tagName === 'P') {
+                                    const isBlockMath = node.children.length === 1 && node.children[0].className === 'math-display';
+                                    const hasInlineMath = Array.from(node.children).some(c => c.className === 'math-inline');
+                                    if (node.className === 'Subtitle') children.push(new docx.Paragraph({ children: getRuns(node, { font: "楷体_GB2312", size: 44 }), alignment: docx.AlignmentType.CENTER, spacing: EXACT_28_PT }));
+                                    else if (node.className === 'AuthorLine') children.push(new docx.Paragraph({ children: getRuns(node, { font: "楷体_GB2312", size: 32 }), alignment: docx.AlignmentType.CENTER, spacing: EXACT_28_PT }));
+                                    else if (node.className === 'EmptyLine') children.push(new docx.Paragraph({ text: "", spacing: EXACT_28_PT }));
+                                    else if (node.className === 'Signatory') {
+                                        const text = node.textContent.replace(/\s+/g, ''); let beforeSpace = 240; if (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(text)) beforeSpace = 0;
+                                        children.push(new docx.Paragraph({ children: getRuns(node, { font: "仿宋_GB2312", size: 32 }), alignment: docx.AlignmentType.RIGHT, indent: { right: 480 }, spacing: { line: 560, lineRule: "exact", before: beforeSpace, after: 0 } }));
+                                    } else {
+                                        let mathSpacing = EXACT_28_PT; if (isBlockMath) mathSpacing = { lineRule: "auto", before: 120, after: 120 }; else if (hasInlineMath) mathSpacing = { lineRule: "atLeast", line: 560, before: 0, after: 0 };
+                                        // 修改点：将普通段落的 JUSTIFIED 改为 LEFT
+                                        children.push(new docx.Paragraph({ children: getRuns(node, { font: "仿宋_GB2312", size: 32 }), alignment: isBlockMath ? docx.AlignmentType.CENTER : docx.AlignmentType.LEFT, indent: isBlockMath ? undefined : { firstLine: 640 }, spacing: mathSpacing }));
+                                    }
+                                } else if (node.tagName === 'TABLE') {
+                                    const tableRows = [];
+                                    node.querySelectorAll('tr').forEach(tr => {
+                                        const tableCells = [];
+                                        tr.querySelectorAll('th, td').forEach(td => {
+                                            const isHeader = td.tagName === 'TH'; const cellRuns = getRuns(td, { font: isHeader ? "黑体" : "仿宋_GB2312", size: 32 });
+                                            const hasInlineMath = Array.from(td.children).some(c => c.className === 'math-inline');
+                                            const cellSpacing = hasInlineMath ? { lineRule: "atLeast", line: 560 } : EXACT_28_PT;
+                                            tableCells.push(new docx.TableCell({ children: [ new docx.Paragraph({ children: cellRuns, alignment: docx.AlignmentType.CENTER, spacing: cellSpacing }) ], verticalAlign: docx.VerticalAlign.CENTER }));
+                                        });
+                                        if (tableCells.length > 0) tableRows.push(new docx.TableRow({ children: tableCells }));
+                                    });
+                                    if (tableRows.length > 0) {
+                                        children.push(new docx.Table({ rows: tableRows, width: { size: 100, type: docx.WidthType.PERCENTAGE }, alignment: docx.AlignmentType.CENTER, borders: { top: { style: docx.BorderStyle.SINGLE, size: 4, color: "000000" }, bottom: { style: docx.BorderStyle.SINGLE, size: 4, color: "000000" }, left: { style: docx.BorderStyle.SINGLE, size: 4, color: "000000" }, right: { style: docx.BorderStyle.SINGLE, size: 4, color: "000000" }, insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 4, color: "000000" }, insideVertical: { style: docx.BorderStyle.SINGLE, size: 4, color: "000000" } } }));
+                                        children.push(new docx.Paragraph({ text: "", spacing: { after: 120 } }));
+                                    }
+                                } else {
+                                    // 修改点：将 fallback 的 JUSTIFIED 改为 LEFT
+                                    const fallbackRuns = getRuns(node, { font: "仿宋_GB2312", size: 32 }); if (fallbackRuns.length > 0) children.push(new docx.Paragraph({ children: fallbackRuns, alignment: docx.AlignmentType.LEFT, indent: { firstLine: 640 }, spacing: EXACT_28_PT }));
+                                }
+                            });
+                            return children;
+                        })()
+                    }]
+                });
+                const buffer = await docx.Packer.toBlob(doc);
+                saveAs(buffer, `${exportFileName}.docx`);
+            } catch (error) { alert("导出失败，文件内容可能存在非法结构: " + error.message); console.error(error); }
+        }
+    </script>
+</body>
+</html>

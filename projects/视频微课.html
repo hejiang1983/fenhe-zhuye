@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频微课 - 复习与关联</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-5px);
+        }
+
+        /* 页面标题 */
+        .page-title {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 主内容区域 - 左右布局 */
+        .main-content {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        /* 左侧导航 */
+        .video-list {
+            flex: 0 0 280px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .video-list h3 {
+            color: #333;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .video-item {
+            padding: 14px 18px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            color: #333;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .video-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .video-item.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .video-item i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* 右侧视频区域 */
+        .video-area {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 当前视频标题 */
+        .current-title {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .current-title h2 {
+            color: #333;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .current-title h2 i {
+            color: #667eea;
+        }
+
+        /* 视频容器 */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 16:9 响应式比例 */
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            min-height: 200px;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 顶部标题栏 */
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .header-bar h1 {
+            margin: 0;
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 992px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .video-list {
+                flex: none;
+                width: 100%;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .video-list h3 {
+                text-align: center;
+            }
+
+            .video-item {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+
+            .video-area {
+                width: 100%;
+            }
+
+            .video-wrapper {
+                min-height: 250px;
+            }
+
+            .video-container {
+                min-height: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 8px 15px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .header-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .header-bar h1 {
+                font-size: 1.5rem;
+                margin: 0;
+            }
+
+            .back-btn {
+                padding: 10px 18px;
+                font-size: 0.9rem;
+            }
+
+            .video-wrapper {
+                border-radius: 12px;
+            }
+
+            .current-title {
+                padding: 15px 18px;
+            }
+
+            .current-title h2 {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px 10px;
+            }
+
+            .header-bar h1 {
+                font-size: 1.3rem;
+            }
+
+            .back-btn {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+            }
+
+            .current-title {
+                padding: 12px 15px;
+            }
+
+            .current-title h2 {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部标题栏 -->
+        <div class="header-bar">
+            <h1>
+                <i class="fas fa-video"></i>
+                知识回顾
+            </h1>
+
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                返回主页
+            </a>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 左侧视频列表 -->
+            <div class="video-list">
+                <h3><i class="fas fa-list"></i> 视频目录</h3>
+                
+                <div class="video-item active" onclick="switchVideo(0)">
+                    <i class="fas fa-play-circle"></i>
+                    <span>时间在哪里</span>
+                </div>
+                
+                <div class="video-item" onclick="switchVideo(1)">
+                    <i class="fas fa-play-circle"></i>
+                    <span>一 有余数的除法</span>
+                </div>
+                
+                <div class="video-item" onclick="switchVideo(2)">
+                    <i class="fas fa-play-circle"></i>
+                    <span>二 数量间的乘除关系</span>
+                </div>
+                
+                <div class="video-item" onclick="switchVideo(3)">
+                    <i class="fas fa-play-circle"></i>
+                    <span>三 万以内数的认识</span>
+                </div>
+                
+                <div class="video-item" onclick="switchVideo(4)">
+                    <i class="fas fa-play-circle"></i>
+                    <span>四 万以内的加法和减法</span>
+                </div>
+                
+                <div class="video-item" onclick="switchVideo(5)">
+                    <i class="fas fa-play-circle"></i>
+                    <span>数学连环画</span>
+                </div>
+            </div>
+
+            <!-- 右侧视频区域 -->
+            <div class="video-area">
+                <!-- 视频播放容器 -->
+                <div class="video-wrapper">
+                    <div class="video-container">
+                        <iframe 
+                            id="videoFrame"
+                            src="https://player.bilibili.com/player.html?bvid=BV1zwoCBFEhk&page=1&autoplay=0" 
+                            scrolling="no" 
+                            border="0" 
+                            frameborder="no" 
+                            framespacing="0" 
+                            allowfullscreen="true">
+                        </iframe>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // 视频数据配置 - 请在此处填入视频的BVID
+        const videoData = [
+            {
+                bvid: 'BV1zwoCBFEhk',
+                title: '时间在哪里'
+            },
+            {
+                bvid: 'BV1BwoCBFEx9',
+                title: '一 有余数的除法'
+            },
+            {
+                bvid: 'BV1Emo1BTE25',
+                title: '二 数量间的乘除关系'
+            },
+            {
+                bvid: 'BV1zwoCBFEgK',
+                title: '三 万以内数的认识'
+            },
+            {
+                bvid: 'BV1BwoCBFEWu',
+                title: '四 万以内的加法和减法'
+            },
+            {
+                bvid: 'BV1zwoCBFEEQ',
+                title: '数学连环画'
+            }
+        ];
+
+        let currentVideoIndex = 0;
+
+        function switchVideo(index) {
+            currentVideoIndex = index;
+            
+            // 更新视频iframe
+            const iframe = document.getElementById('videoFrame');
+            iframe.src = `https://player.bilibili.com/player.html?bvid=${videoData[index].bvid}&page=1&autoplay=0`;
+            
+            // 更新列表高亮
+            const items = document.querySelectorAll('.video-item');
+            items.forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

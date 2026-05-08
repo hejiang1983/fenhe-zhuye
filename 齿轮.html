@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>人教版六年级数学下册《自行车里的数学》动画课件 作者：何学江</title>
+    <style>
+        :root { --primary: #2563eb; --slate: #475569; --danger: #ef4444; --success: #22c55e; --purple: #8b5cf6; --orange: #f59e0b; --dark: #1e293b; }
+        
+        /* 页面基础设置 */
+        body { 
+            font-family: system-ui, sans-serif; 
+            background: #e2e8f0; 
+            margin: 0; 
+            padding: 15px; 
+            height: 100vh; 
+            width: 100vw;
+            box-sizing: border-box; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        /* 顶部标题栏 */
+        .header-title {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 16px 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--dark);
+            letter-spacing: 2px;
+            flex-shrink: 0; 
+            border-bottom: 4px solid var(--primary); 
+        }
+        
+        /* 核心布局 */
+        .container { 
+            width: 100%; 
+            flex: 1; 
+            min-height: 0; 
+            display: flex; 
+            flex-direction: row; 
+            gap: 15px; 
+            align-items: stretch; 
+        }
+        
+        .panel-card {
+            background: #ffffff; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06); 
+            display: flex; 
+            flex-direction: column; 
+            box-sizing: border-box;
+        }
+
+        /* 左侧控制面板 */
+        .left-panel { 
+            flex: 0 0 320px; 
+            padding: 20px; 
+            gap: 15px; 
+            overflow-y: auto;
+        }
+        
+        /* 中间动画区 */
+        .center-panel { 
+            flex: 1; 
+            position: relative; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            overflow: hidden; 
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+        }
+        .scene-label { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            background: rgba(30, 41, 59, 0.85); 
+            color: white; 
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            font-size: 15px; 
+            font-weight: bold; 
+            pointer-events: none; 
+            z-index: 10; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        canvas { display: block; outline: none; }
+        
+        /* 右侧折叠面板区 */
+        .right-panel { 
+            flex: 0 0 320px; 
+            padding: 20px; 
+            align-items: flex-start; 
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            overflow-y: auto;
+        }
+
+        .control-row { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 14px; font-weight: 700; color: var(--slate); }
+        input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+        
+        .btn-group { display: flex; gap: 8px; margin-top: auto; }
+        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        
+        #startBtn { flex: 2; background: var(--success); color: white; }
+        #stopBtn { flex: 1; background: var(--danger); color: white; }
+        
+        /* 左侧固定功能按钮 */
+        .toggle-btn { width: 100%; color: white; padding: 12px; margin-bottom: 6px; } 
+        #toggleSceneBtn { background: var(--orange); font-size: 16px; font-weight: bold; }
+        #fullscreenBtn { background: var(--dark); font-size: 14px; }
+        
+        /* 右侧折叠按钮专属样式 */
+        .accordion-btn {
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            padding: 12px 18px;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+        #toggleCalcBtn { background: var(--primary); }
+        #toggleFormulaBtn { background: var(--purple); }
+        #toggleTableBtn { background: #059669; }
+
+        /* 旋转箭头动画 */
+        .arrow {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+        .arrow.open {
+            transform: rotate(180deg);
+        }
+        
+        /* 折叠内容展开动画 */
+        .content-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 8px; 
+            animation: slideDown 0.25s ease-out;
+            transform-origin: top;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: scaleY(0.8) translateY(-10px); }
+            to { opacity: 1; transform: scaleY(1) translateY(0); }
+        }
+
+        /* 答案样式：极致瘦身 */
+        .stat-value { font-size: 32px; font-weight: 800; color: var(--primary); margin: 0; line-height: 1; padding: 5px 0; }
+        
+        /* 公式样式：极致瘦身 */
+        .formula-container { padding: 8px; background: #1e293b; border-radius: 10px; width: 100%; text-align: center; box-sizing: border-box; border: 2px solid #334155; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        #formulaText { font-family: 'Consolas', monospace; font-size: 18px; font-weight: bold; color: #f8fafc; display: flex; justify-content: center; align-items: center; gap: 6px; white-space: nowrap; }
+        .f-red { color: #ff6b6b; } .f-green { color: #51cf66; } .f-blue { color: #339af0; } .f-purple { color: #cc5de8; }
+
+        /* 表格样式 */
+        .table-container { width: 100%; border-radius: 8px; overflow-y: auto; max-height: 240px; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); background: white;}
+        .table-container::-webkit-scrollbar { width: 6px; }
+        .table-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; }
+        th { background: var(--slate); color: white; padding: 8px 2px; font-weight: 600; position: sticky; top: 0; font-size: 12px; letter-spacing: 0.5px; z-index: 1;}
+        td { padding: 8px 2px; border-bottom: 1px solid #e2e8f0; color: var(--dark); font-weight: bold; font-family: 'Consolas', monospace; font-size: 14px;}
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #f1f5f9; }
+
+        /* 清空数据按钮 */
+        #clearTableBtn { background: var(--danger); width: 100%; margin-top: 8px; padding: 8px; color: white; border-radius: 8px; border: none; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        #clearTableBtn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        .hidden-el { display: none !important; }
+        .highlight { color: var(--primary); font-family: monospace; font-size: 16px; }
+        
+        :fullscreen { background: #e2e8f0; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-title">人教版六年级数学下册《自行车里的数学》动画课件</div>
+
+    <div class="container" id="mainContainer">
+        <div class="panel-card left-panel">
+            <button id="toggleSceneBtn" class="toggle-btn">🔄 切换至：直接咬合</button>
+            <button id="fullscreenBtn" class="toggle-btn">⛶ 进入原生全屏</button>
+            <button id="toggleSpiralBtn" class="toggle-btn" style="background: #64748b;">🌀 显示旋转轨迹</button>
+            <button id="toggleZoomBtn" class="toggle-btn" style="background: #8b5cf6; display: none;">🔍 放大咬合处</button>
+            <button id="toggleWheelBtn" class="toggle-btn" style="background: #0284c7; display: block;">🚲 隐藏后车轮</button>
+            <hr style="width: 100%; border: 0; border-top: 1px solid #e2e8f0; margin: 2px 0 8px 0;">
+            
+            <div class="control-row">
+                <label>前齿轮齿数: <span id="txtA" class="highlight">30</span></label>
+                <input type="range" id="inputA" min="20" max="60" value="30">
+            </div>
+            <div class="control-row">
+                <label>后齿轮齿数: <span id="txtB" class="highlight">10</span></label>
+                <input type="range" id="inputB" min="10" max="32" value="10">
+            </div>
+            <div class="control-row">
+                <label>设定前轮转动圈数: <span id="txtTurns" class="highlight">1.0</span></label>
+                <input type="range" id="inputTurns" min="0.1" max="5" step="0.1" value="1">
+            </div>
+            <div class="control-row">
+                <label>演示速度: <span id="txtSpeed" class="highlight">慢速</span></label>
+                <input type="range" id="inputSpeed" min="0.001" max="0.03" step="0.001" value="0.005">
+            </div>
+            
+            <div class="btn-group">
+                <button id="startBtn">▶ 运行动画</button>
+                <button id="stopBtn">⏹ 复位</button>
+            </div>
+        </div>
+
+        <div class="panel-card center-panel">
+            <div id="sceneLabel" class="scene-label">当前场景：链条传动 (同向)</div>
+            <canvas id="bikeCanvas"></canvas>
+        </div>
+
+        <div class="panel-card right-panel">
+            
+            <button id="toggleCalcBtn" class="toggle-btn accordion-btn">
+                <span>👁️ 后齿轮转动圈数</span> <span class="arrow" id="arrowCalc">▼</span>
+            </button>
+            <div id="ansContainer" class="content-section hidden-el">
+                <div id="resultTurns" class="stat-value">3.00</div>
+            </div>
+
+            <button id="toggleFormulaBtn" class="toggle-btn accordion-btn">
+                <span>📝 公式</span> <span class="arrow" id="arrowFormula">▼</span>
+            </button>
+            <div id="formulaContainer" class="content-section hidden-el">
+                <div id="formulaBox" class="formula-container">
+                    <div id="formulaText">
+                        <span class="f-red" id="fA">30</span> 
+                        <span>×</span> 
+                        <span class="f-green" id="fTA">1.0</span> 
+                        <span>=</span> 
+                        <span class="f-blue" id="fB">10</span> 
+                        <span>×</span> 
+                        <span class="f-purple" id="fTB">3.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <button id="toggleTableBtn" class="toggle-btn accordion-btn">
+                <span>📊 实验数据记录表</span> <span class="arrow" id="arrowTable">▼</span>
+            </button>
+            <div id="tableSection" class="content-section hidden-el">
+                <div id="tableContainer" class="table-container">
+                    <table id="recordTable">
+                        <thead>
+                            <tr>
+                                <th>前齿轮(齿)</th>
+                                <th>前转数(圈)</th>
+                                <th>后齿轮(齿)</th>
+                                <th>后转数(圈)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+                <button id="clearTableBtn">🗑️ 清空表格数据</button>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('bikeCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+        const centerPanel = document.querySelector('.center-panel');
+        canvas.width = centerPanel.clientWidth;
+        canvas.height = centerPanel.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas(); 
+
+    const inputA = document.getElementById('inputA'), inputB = document.getElementById('inputB');
+    const inputTurns = document.getElementById('inputTurns'), inputSpeed = document.getElementById('inputSpeed');
+    const txtSpeed = document.getElementById('txtSpeed'), sceneLabel = document.getElementById('sceneLabel');
+    const resultTurns = document.getElementById('resultTurns'), formulaBox = document.getElementById('formulaBox');
+    const fA = document.getElementById('fA'), fTA = document.getElementById('fTA'), fB = document.getElementById('fB'), fTB = document.getElementById('fTB');
+
+    let isRunning = false, isAnsVisible = false, isFormulaVisible = false, isTableVisible = false;
+    
+    let isMeshScene = false; 
+    let isWheelVisible = true;
+
+    let currentAngleA = 0, targetAngleA = 0;
+    const PPCM = 2.5; 
+
+    document.getElementById('fullscreenBtn').onclick = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`无法进入全屏模式: ${err.message}`);
+            });
+            document.getElementById('fullscreenBtn').textContent = "🗗 退出原生全屏";
+        } else {
+            document.exitFullscreen();
+            document.getElementById('fullscreenBtn').textContent = "⛶ 进入原生全屏";
+        }
+    };
+
+    let isSpiralVisible = false;
+    document.getElementById('toggleSpiralBtn').onclick = () => {
+        isSpiralVisible = !isSpiralVisible;
+        const btn = document.getElementById('toggleSpiralBtn');
+        btn.textContent = isSpiralVisible ? "🌀 隐藏旋转轨迹" : "🌀 显示旋转轨迹";
+        btn.style.background = isSpiralVisible ? "#10b981" : "#64748b";
+    };
+
+    let isZoomed = false;
+    const zoomBtn = document.getElementById('toggleZoomBtn');
+    zoomBtn.onclick = () => {
+        if (!isMeshScene) return; 
+        isZoomed = !isZoomed;
+        zoomBtn.textContent = isZoomed ? "🔍 还原全局视角" : "🔍 放大咬合处";
+        zoomBtn.style.background = isZoomed ? "#c026d3" : "#8b5cf6"; 
+    };
+
+    const wheelBtn = document.getElementById('toggleWheelBtn');
+    wheelBtn.onclick = () => {
+        if (isMeshScene) return; 
+        isWheelVisible = !isWheelVisible;
+        wheelBtn.textContent = isWheelVisible ? "🚲 隐藏后车轮" : "🚲 显示后车轮";
+        wheelBtn.style.background = isWheelVisible ? "#0284c7" : "#0ea5e9"; 
+    };
+
+    const resetAnimationState = () => {
+        isRunning = false;
+        currentAngleA = 0;
+    };
+    inputA.addEventListener('input', resetAnimationState);
+    inputB.addEventListener('input', resetAnimationState);
+    inputTurns.addEventListener('input', resetAnimationState);
+    inputSpeed.addEventListener('input', resetAnimationState);
+
+    document.getElementById('toggleCalcBtn').onclick = () => {
+        isAnsVisible = !isAnsVisible;
+        document.getElementById('ansContainer').classList.toggle('hidden-el', !isAnsVisible);
+        document.getElementById('arrowCalc').classList.toggle('open', isAnsVisible);
+    };
+    
+    document.getElementById('toggleFormulaBtn').onclick = () => {
+        isFormulaVisible = !isFormulaVisible;
+        document.getElementById('formulaContainer').classList.toggle('hidden-el', !isFormulaVisible);
+        document.getElementById('arrowFormula').classList.toggle('open', isFormulaVisible);
+    };
+    
+    document.getElementById('toggleTableBtn').onclick = () => {
+        isTableVisible = !isTableVisible;
+        document.getElementById('tableSection').classList.toggle('hidden-el', !isTableVisible);
+        document.getElementById('arrowTable').classList.toggle('open', isTableVisible);
+    };
+
+    document.getElementById('clearTableBtn').onclick = () => {
+        document.querySelector('#recordTable tbody').innerHTML = '';
+    };
+
+    document.getElementById('toggleSceneBtn').onclick = () => {
+        isMeshScene = !isMeshScene;
+        document.getElementById('toggleSceneBtn').textContent = isMeshScene ? "🔄 切换至：链条传动" : "🔄 切换至：直接咬合";
+        sceneLabel.textContent = isMeshScene ? "当前场景：直接咬合 (反向)" : "当前场景：链条传动 (同向)";
+        
+        if (!isMeshScene) {
+            isZoomed = false;
+            zoomBtn.textContent = "🔍 放大咬合处";
+            zoomBtn.style.background = "#8b5cf6";
+            zoomBtn.style.display = "none";
+            
+            isWheelVisible = true;
+            wheelBtn.textContent = "🚲 隐藏后车轮";
+            wheelBtn.style.background = "#0284c7";
+            wheelBtn.style.display = "block";
+        } else {
+            isZoomed = false;
+            zoomBtn.textContent = "🔍 放大咬合处";
+            zoomBtn.style.background = "#8b5cf6";
+            zoomBtn.style.display = "block";
+            
+            isWheelVisible = false;
+            wheelBtn.style.display = "none";
+        }
+
+        currentAngleA = 0; 
+        isRunning = false;
+    };
+
+    document.getElementById('startBtn').onclick = () => { 
+        isRunning = true; 
+        currentAngleA = 0; 
+        
+        const setTurnsA = parseFloat(inputTurns.value);
+        targetAngleA = setTurnsA * Math.PI * 2; 
+
+        const tA = parseInt(inputA.value);
+        const tB = parseInt(inputB.value);
+        const calcTurnsB = (setTurnsA * (tA / tB)).toFixed(2);
+        
+        const tbody = document.querySelector('#recordTable tbody');
+        const tr = document.createElement('tr');
+        
+        tr.innerHTML = `
+            <td style="color: #ff6b6b;">${tA}</td>
+            <td style="color: #51cf66;">${setTurnsA.toFixed(1)}</td>
+            <td style="color: #339af0;">${tB}</td>
+            <td style="color: #cc5de8;">${calcTurnsB}</td>
+        `;
+        tbody.appendChild(tr);
+
+        const tableContainer = document.getElementById('tableContainer');
+        tableContainer.scrollTop = tableContainer.scrollHeight;
+    };
+    
+    document.getElementById('stopBtn').onclick = () => { isRunning = false; currentAngleA = 0; };
+
+    function drawSpiralWithArrow(x, y, angle, gearRadius, expectedMaxTurns) {
+        const absAngle = Math.abs(angle);
+        if (absAngle < 0.05) return;
+        
+        ctx.save(); ctx.translate(x, y); 
+        ctx.beginPath(); ctx.strokeStyle = "#ff0000"; ctx.lineWidth = 5; ctx.lineCap = "round";
+        
+        const dr = (gearRadius - 20) / (expectedMaxTurns * 2 * Math.PI + 0.5);
+        let lx, ly, lt, lr;
+        
+        for (let i = 0; i <= absAngle; i += 0.05) {
+            const r = 10 + (i * dr); 
+            const th = (angle < 0) ? -i : i; 
+            lx = Math.cos(th) * r; ly = Math.sin(th) * r; 
+            lt = th; lr = r;
+            if (i === 0) ctx.moveTo(lx, ly); else ctx.lineTo(lx, ly);
+        }
+        ctx.stroke();
+        
+        ctx.save(); ctx.translate(lx, ly); 
+        const sign = angle < 0 ? -1 : 1;
+        const dx = dr * sign * Math.cos(lt) - lr * Math.sin(lt);
+        const dy = dr * sign * Math.sin(lt) + lr * Math.cos(lt);
+        let arrowAngle = Math.atan2(dy, dx);
+        if (angle < 0) arrowAngle = Math.atan2(-dy, -dx); 
+        
+        ctx.rotate(arrowAngle); 
+        ctx.beginPath(); ctx.fillStyle = "#ff0000"; 
+        ctx.moveTo(0, -7); ctx.lineTo(0, 7); ctx.lineTo(12, 0); 
+        ctx.closePath(); ctx.fill(); 
+        ctx.restore(); ctx.restore();
+    }
+
+    function drawWheel(x, y, radius, angle) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        // 轮胎黑色外圈
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.lineWidth = 16;
+        ctx.strokeStyle = "#334155";
+        ctx.stroke();
+
+        // 轮毂灰色内圈
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 8, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.stroke();
+
+        // 辐条 (Spokes)
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#94a3b8";
+        for (let i = 0; i < 18; i++) {
+            ctx.moveTo(0, 0);
+            ctx.lineTo(radius - 8, 0);
+            ctx.rotate(Math.PI * 2 / 18);
+        }
+        ctx.stroke();
+
+        ctx.restore();
+
+        // 绘制“后车轮”标签
+        ctx.fillStyle = "#334155";
+        ctx.font = "bold 20px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("后车轮", x, y - radius - 25);
+    }
+
+    function drawGear(x, y, teeth, angle, color, label, expectedMaxTurns, traveledAngle = angle) {
+        const radius = teeth * PPCM, outerRadius = radius + 8;
+        ctx.save(); 
+        ctx.translate(x, y); 
+        
+        ctx.save();
+        ctx.rotate(angle); 
+        ctx.beginPath(); ctx.fillStyle = color; ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+        for (let i = 0; i < teeth * 2; i++) {
+            const r = (i / (teeth * 2)) * Math.PI * 2; 
+            const dist = (i % 2 === 0) ? outerRadius : radius; 
+            ctx.lineTo(Math.cos(r) * dist, Math.sin(r) * dist);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+        
+        ctx.save();
+        ctx.rotate(traveledAngle);
+        ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 3; 
+        ctx.moveTo(0,0); ctx.lineTo(radius, 0); 
+        ctx.stroke(); 
+        ctx.restore();
+        
+        ctx.restore(); 
+        
+        if (isSpiralVisible) {
+            drawSpiralWithArrow(x, y, traveledAngle, radius, expectedMaxTurns);
+        }
+        
+        ctx.fillStyle = "#1e293b"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center"; 
+        ctx.fillText(`${label} (${teeth}齿)`, x, y + outerRadius + 32);
+    }
+
+    function drawChain(ax, ay, ar, bx, by, br, angleA) {
+        const dx = bx - ax, dy = by - ay; const dist = Math.sqrt(dx*dx + dy*dy); 
+        const angleToCenter = Math.atan2(dy, dx); const angleOffset = Math.asin((ar - br) / dist);
+        const p1x = ax + Math.cos(angleToCenter - Math.PI/2 + angleOffset) * ar; const p1y = ay + Math.sin(angleToCenter - Math.PI/2 + angleOffset) * ar; 
+        const p2x = bx + Math.cos(angleToCenter - Math.PI/2 + angleOffset) * br; const p2y = by + Math.sin(angleToCenter - Math.PI/2 + angleOffset) * br;
+        
+        ctx.beginPath(); ctx.lineWidth = 10; ctx.strokeStyle = "#334155"; ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y); 
+        ctx.arc(bx, by, br, angleToCenter - Math.PI/2 + angleOffset, angleToCenter + Math.PI/2 - angleOffset, false); 
+        ctx.lineTo(ax + Math.cos(angleToCenter + Math.PI/2 - angleOffset) * ar, ay + Math.sin(angleToCenter + Math.PI/2 - angleOffset) * ar); 
+        ctx.arc(ax, ay, ar, angleToCenter + Math.PI/2 - angleOffset, angleToCenter - Math.PI/2 + angleOffset, false); ctx.stroke();
+        
+        ctx.save(); ctx.setLineDash([5, 10]); ctx.lineDashOffset = -angleA * ar; 
+        ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 5; ctx.stroke(); ctx.restore();
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const tA = parseInt(inputA.value), tB = parseInt(inputB.value);
+        const setTurnsA = parseFloat(inputTurns.value), currentSpeed = parseFloat(inputSpeed.value);
+        const ratio = tA / tB; const calcTurnsB = (setTurnsA * ratio).toFixed(2);
+        
+        document.getElementById('txtA').textContent = tA; document.getElementById('txtB').textContent = tB; document.getElementById('txtTurns').textContent = setTurnsA.toFixed(1);
+        
+        if (currentSpeed < 0.01) txtSpeed.textContent = "慢速";
+        else if (currentSpeed > 0.02) txtSpeed.textContent = "快速";
+        else txtSpeed.textContent = "标准";
+
+        resultTurns.textContent = calcTurnsB;
+        fA.textContent = tA; fTA.textContent = setTurnsA.toFixed(1); fB.textContent = tB; fTB.textContent = calcTurnsB;
+
+        const rA = tA * PPCM + 4; 
+        const rB = tB * PPCM + 4;
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        let ax, ay, bx, by;
+
+        if (isMeshScene) {
+            ax = centerX - rA;
+            bx = centerX + rB;
+        } else {
+            const minChainDist = rA + rB + 80; 
+            const actualDist = Math.max(minChainDist, 400); 
+            ax = centerX - actualDist / 2;
+            bx = centerX + actualDist / 2;
+        }
+        ay = centerY; 
+        by = centerY;
+        
+        if (isRunning) {
+            if (Math.abs(currentAngleA) < targetAngleA) currentAngleA -= currentSpeed; 
+            else { isRunning = false; currentAngleA = -targetAngleA; } 
+        }
+
+        let angleB;           
+        let traveledAngleB;   
+        
+        if (isMeshScene) {
+            traveledAngleB = -currentAngleA * ratio; 
+            const phaseOffset = (tB % 2 === 0) ? (Math.PI / tB) : 0;
+            angleB = traveledAngleB + phaseOffset; 
+        } else {
+            traveledAngleB = currentAngleA * ratio; 
+            angleB = traveledAngleB; 
+        }
+
+        if (!isMeshScene && isWheelVisible) {
+            ctx.save();
+            ctx.translate(centerX - 60, centerY);
+            ctx.scale(0.6, 0.6); 
+            ctx.translate(-centerX, -centerY);
+        } else if (isMeshScene && isZoomed) {
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.scale(8.0, 8.0); 
+            ctx.translate(-centerX, -centerY);
+        }
+
+        if (!isMeshScene) {
+            if (isWheelVisible) {
+                drawWheel(bx, by, 240, angleB);
+            }
+            drawChain(ax, ay, rA, bx, by, rB, currentAngleA);
+        }
+
+        drawGear(ax, ay, tA, currentAngleA, "#64748b", "前齿轮", setTurnsA, currentAngleA); 
+        drawGear(bx, by, tB, angleB, "#2563eb", "后齿轮", setTurnsA * ratio, traveledAngleB);
+        
+        if ((!isMeshScene && isWheelVisible) || (isMeshScene && isZoomed)) {
+            ctx.restore();
+        }
+
+        requestAnimationFrame(render);
+    }
+    render();
+</script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小学数学知识结构图 - 矢量无限缩放版</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
+        }
+        #main-chart {
+            width: 100vw;
+            height: 100vh;
+        }
+        .control-panel {
+            position: fixed; 
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            border: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .control-panel h1 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            color: #212529;
+            font-weight: 800;
+        }
+        .tips {
+            font-size: 12px;
+            color: #868e96;
+            margin: 0;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: #fff;
+            background-color: #3b5bdb;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(59, 91, 219, 0.25);
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        button:hover { 
+            background-color: #4c6ef5; 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 91, 219, 0.35);
+        }
+        button:active { transform: translateY(0); }
+        .btn-collapse {
+            background-color: #868e96;
+            box-shadow: 0 4px 10px rgba(134, 142, 150, 0.2);
+        }
+        .btn-collapse:hover { 
+            background-color: #adb5bd; 
+            box-shadow: 0 6px 15px rgba(134, 142, 150, 0.3);
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 768px) {
+            .control-panel {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 15px;
+            }
+            .control-panel h1 {
+                font-size: 16px;
+            }
+            .tips {
+                font-size: 11px;
+            }
+            button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .btn-group {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .control-panel {
+                top: 5px;
+                right: 5px;
+                left: 5px;
+                padding: 10px;
+            }
+            .control-panel h1 {
+                font-size: 14px;
+                margin-bottom: 3px;
+            }
+            .tips {
+                font-size: 10px;
+            }
+            button {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            img {
+                height: 28px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+            <img src="assets/微信图片_2026-03-29_181540_548.png" alt="小数林儿" style="height: 36px; pointer-events: none;">
+        </div>
+        <h1>数学知识结构图</h1>
+        <p class="tips">✨ 支持鼠标滚轮缩放、左键长按拖拽</p>
+        <div class="btn-group">
+            <button id="btn-expand">全部展开</button>
+            <button id="btn-collapse" class="btn-collapse">收起到起点</button>
+            <button onclick="window.location.href='index.html'" style="background-color: #10b981;">返回主页</button>
+        </div>
+    </div>
+    
+    <div id="main-chart"></div>
+
+    <script>
+        var chartDom = document.getElementById('main-chart');
+        var myChart = echarts.init(chartDom);
+
+        const rawTreeData = {
+            name: '数学知识网络',
+            children: [
+                {
+                    name: '数与代数',
+                    children: [
+                        {
+                            name: '数与运算',
+                            children: [
+                                {
+                                    name: '数的认识',
+                                    children: [
+                                        {
+                                            name: '万以内数的认识',
+                                            children: [
+                                                { name: '数数' }, { name: '数的组成' }, { name: '数的读写' },
+                                                { name: '数的顺序' }, { name: '比大小' }, { name: '近似数' },
+                                                { name: '⇨ 计数单位、十进制' }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    name: '数的运算',
+                                    children: [
+                                        {
+                                            name: '万以内的加、减法',
+                                            children: [
+                                                {
+                                                    name: '加法',
+                                                    children: [
+                                                        { 
+                                                            name: '计算 (满十进1)',
+                                                            children: [{ name: '⇨ 相同计数单位的个数相加减' }]
+                                                        },
+                                                        { 
+                                                            name: '加法的意义',
+                                                            children: [
+                                                                { 
+                                                                    name: '加法各部分间的关系',
+                                                                    children: [
+                                                                        { name: '和 = 加数 + 加数' },
+                                                                        { name: '加数 = 和 - 另一个加数' }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    name: '↕ 互为逆运算'
+                                                },
+                                                {
+                                                    name: '减法',
+                                                    children: [
+                                                        { 
+                                                            name: '计算 (退1当10)',
+                                                            children: [{ name: '⇨ 相同计数单位的个数相加减' }]
+                                                        },
+                                                        { 
+                                                            name: '减法的意义',
+                                                            children: [
+                                                                { 
+                                                                    name: '减法各部分间的关系',
+                                                                    children: [
+                                                                        { name: '差 = 被减数 - 减数' },
+                                                                        { name: '减数 = 被减数 - 差' },
+                                                                        { name: '被减数 = 减数 + 差' }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            name: '除法', 
+                                            children: [
+                                                { name: '无余数的除法' }, 
+                                                {
+                                                    name: '有余数的除法', 
+                                                    children: [
+                                                        { name: '意义' }, { name: '运算' }, { name: '应用' }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            name: '数量关系',
+                            children: [
+                                {
+                                    name: '数量间的乘除关系',
+                                    children: [
+                                        {
+                                            name: '用倍解决问题',
+                                            children: [
+                                                {
+                                                    name: '单一问题',
+                                                    children: [
+                                                        { name: '求一个数是另一个数的几倍' },
+                                                        { name: '求一个数的几倍是多少' },
+                                                        { name: '已知一个数的几倍是多少，求这个数' }
+                                                    ]
+                                                },
+                                                {
+                                                    name: '复杂问题',
+                                                    children: [
+                                                        { name: '连续两问的问题' },
+                                                        { name: '提出问题，补充条件' }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: '综合与实践',
+                    children: [
+                        { name: '时间在哪里' }, { name: '数学连环画' }
+                    ]
+                }
+            ]
+        };
+
+        let idCounter = 1;
+        function preprocessData(node) {
+            node.id = 'node_' + idCounter++;
+            if (node.name.includes('⇨')) node.isCore = true;
+            if (node.name.includes('↕')) node.isLink = true;
+            if (node.children) node.children.forEach(preprocessData);
+        }
+        preprocessData(rawTreeData);
+
+        const depthColors = [
+            '#e03131', '#1971c2', '#2b8a3e', '#e67700', 
+            '#862e9c', '#0b7285', '#d6336c', '#f59f00', '#4c6ef5'
+        ];
+
+        function applyZoomStyles(node, depth, zoom) {
+            const bgColor = depthColors[Math.min(depth, depthColors.length - 1)];
+            
+            node.label = node.label || {};
+            node.itemStyle = node.itemStyle || {};
+
+            let fontSize = 14 * zoom;
+            let paddingY = 8 * zoom;
+            let paddingX = 14 * zoom;
+            let radius = 6 * zoom;
+
+            if (depth === 0) {
+                fontSize = 18 * zoom;
+                paddingY = 14 * zoom;
+                paddingX = 26 * zoom;
+                radius = 10 * zoom;
+            }
+
+            node.label.fontSize = Math.max(4, fontSize); 
+            node.label.padding = [paddingY, paddingX];
+            node.label.borderRadius = radius;
+            node.label.color = '#ffffff';
+            node.label.backgroundColor = bgColor;
+            node.label.shadowColor = 'rgba(0, 0, 0, 0.12)';
+            node.label.shadowBlur = 8 * zoom;
+            node.label.shadowOffsetY = 2 * zoom;
+            
+            node.itemStyle.color = bgColor;
+            node.itemStyle.borderColor = bgColor;
+
+            if (node.isCore) {
+                node.label.backgroundColor = '#e03131';
+                node.label.borderColor = '#ffa8a8';
+                node.label.borderWidth = 2 * zoom;
+                node.label.shadowColor = 'rgba(224, 49, 49, 0.4)';
+                node.itemStyle.borderColor = '#c92a2a';
+                node.itemStyle.borderWidth = 2 * zoom;
+                node.itemStyle.borderType = 'dashed';
+            } else if (node.isLink) {
+                node.label.backgroundColor = '#868e96';
+                node.label.borderRadius = 20 * zoom;
+                node.itemStyle.color = '#868e96';
+                node.itemStyle.borderColor = '#868e96';
+            } else {
+                node.label.borderWidth = 0; 
+            }
+
+            if (node.children) {
+                node.children.forEach(child => applyZoomStyles(child, depth + 1, zoom));
+            }
+        }
+
+        let currentZoom = 1.0;
+        applyZoomStyles(rawTreeData, 0, currentZoom);
+
+        const option = {
+            tooltip: { trigger: 'item', triggerOn: 'mousemove' },
+            animationDurationUpdate: 400, 
+            series: [{
+                id: 'myDynamicTree', 
+                type: 'tree',
+                data: [rawTreeData],
+                left: '8%', right: '22%', top: '5%', bottom: '5%',
+                symbol: 'circle',
+                symbolSize: 10 * currentZoom,
+                orient: 'LR',
+                expandAndCollapse: true,
+                initialTreeDepth: 0, 
+                roam: true, 
+                
+                // 这里是修改后的核心配置，换成了 ▸ 符号
+                label: { 
+                    position: 'left', 
+                    verticalAlign: 'middle', 
+                    align: 'right', 
+                    fontWeight: 'bold',
+                    formatter: function(params) {
+                        if (params.data.children && params.data.children.length > 0 && params.collapsed) {
+                            return params.name + ' ▸'; 
+                        }
+                        return params.name; 
+                    }
+                },
+                
+                leaves: { label: { position: 'right', verticalAlign: 'middle', align: 'left' } },
+                lineStyle: { color: '#ced4da', width: 2 * currentZoom, curveness: 0.35 }
+            }]
+        };
+
+        myChart.setOption(option);
+
+        let zoomTimeout;
+        myChart.on('graphRoam', function (params) {
+            if (params.zoom) {
+                currentZoom *= params.zoom;
+                currentZoom = Math.max(0.2, Math.min(currentZoom, 4.0));
+                
+                applyZoomStyles(rawTreeData, 0, currentZoom);
+                
+                myChart.setOption({
+                    animationDurationUpdate: 0, 
+                    series: [{
+                        id: 'myDynamicTree', 
+                        data: [rawTreeData],
+                        symbolSize: 10 * currentZoom,
+                        lineStyle: { width: 2 * currentZoom }
+                    }]
+                });
+
+                clearTimeout(zoomTimeout);
+                zoomTimeout = setTimeout(() => {
+                    myChart.setOption({ animationDurationUpdate: 400 });
+                }, 150);
+            }
+        });
+
+        document.getElementById('btn-expand').addEventListener('click', function() {
+            myChart.setOption({ series: [{ id: 'myDynamicTree', initialTreeDepth: -1 }] });
+        });
+
+        document.getElementById('btn-collapse').addEventListener('click', function() {
+            myChart.setOption({ series: [{ id: 'myDynamicTree', initialTreeDepth: 0 }] });
+        });
+
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
+
+    <!-- 图片播放按钮 -->
+    <div id="play-btn-container" style="
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1001;
+    ">
+      <button id="show-image-btn" onclick="showImageViewer()" style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+      " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.5)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        查看教材
+      </button>
+    </div>
+
+    <!-- 图片播放容器 -->
+    <div id="image-viewer" style="
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1001;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      padding: 12px;
+      min-width: 280px;
+      max-width: 85vw;
+      max-height: 85vh;
+    ">
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eee;
+      ">
+        <span style="font-size: 14px; font-weight: 600; color: #333;">教材分析</span>
+        <div style="display: flex; gap: 5px; align-items: center;">
+          <span id="zoom-level" style="font-size: 12px; color: #667eea; margin-right: 8px; min-width: 45px;">100%</span>
+          <button onclick="resetImageZoom()" style="
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #667eea;
+            padding: 0 5px;
+          ">重置</button>
+          <button onclick="hideImageViewer()" style="
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+            padding: 0 5px;
+          ">×</button>
+        </div>
+      </div>
+      <div id="image-content" style="
+        text-align: center;
+        overflow: hidden;
+      ">
+        <img id="viewer-image" src="assets/图片1(3).jpg" alt="教材分析图" style="
+          width: 260px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: width 0.15s ease;
+        " onclick="openFullImage(this.src)" onwheel="handleWheel(event)">
+      </div>
+    </div>
+
+    <!-- 全屏图片模态框 -->
+    <div id="full-image-modal" style="
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.9);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    ">
+      <img id="full-image" src="" style="
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+        cursor: grab;
+        transition: transform 0.1s ease;
+      " onwheel="handleFullWheel(event)" onmousedown="startDrag(event)" onmousemove="doDrag(event)" onmouseup="endDrag()" onmouseleave="endDrag()">
+      <button onclick="closeFullImage()" style="
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 10;
+      ">×</button>
+      <div style="
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255,255,255,0.9);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #333;
+        z-index: 10;
+      "><span id="full-zoom-level">100%</span> | 滚轮缩放 | 拖拽移动</div>
+    </div>
+
+    <script>
+    var currentScale = 1;
+    var fullScale = 1;
+    var isDragging = false;
+    var dragStartX, dragStartY;
+    var baseWidth = 260;
+    var translateX = 0, translateY = 0;
+
+    function showImageViewer() {
+      document.getElementById('play-btn-container').style.display = 'none';
+      document.getElementById('image-viewer').style.display = 'block';
+      resetImageZoom();
+    }
+    function hideImageViewer() {
+      document.getElementById('image-viewer').style.display = 'none';
+      document.getElementById('play-btn-container').style.display = 'block';
+      resetImageZoom();
+    }
+    function handleWheel(e) {
+      e.preventDefault();
+      var img = document.getElementById('viewer-image');
+      var delta = e.deltaY > 0 ? -0.2 : 0.2;
+      currentScale = Math.min(Math.max(0.5, currentScale + delta), 4);
+      var newWidth = baseWidth * currentScale;
+      img.style.width = newWidth + 'px';
+      document.getElementById('zoom-level').textContent = Math.round(currentScale * 100) + '%';
+    }
+    function resetImageZoom() {
+      currentScale = 1;
+      var img = document.getElementById('viewer-image');
+      if (img) {
+        img.style.width = baseWidth + 'px';
+      }
+      document.getElementById('zoom-level').textContent = '100%';
+    }
+    function openFullImage(src) {
+      var modal = document.getElementById('full-image-modal');
+      var img = document.getElementById('full-image');
+      img.src = src;
+      modal.style.display = 'flex';
+      fullScale = 1;
+      translateX = 0;
+      translateY = 0;
+      img.style.transform = 'scale(1)';
+      document.getElementById('full-zoom-level').textContent = '100%';
+    }
+    function closeFullImage() {
+      document.getElementById('full-image-modal').style.display = 'none';
+      fullScale = 1;
+      isDragging = false;
+      translateX = 0;
+      translateY = 0;
+    }
+    function handleFullWheel(e) {
+      e.preventDefault();
+      var img = document.getElementById('full-image');
+      var delta = e.deltaY > 0 ? -0.2 : 0.2;
+      fullScale = Math.min(Math.max(0.5, fullScale + delta), 5);
+      img.style.transform = 'scale(' + fullScale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
+      document.getElementById('full-zoom-level').textContent = Math.round(fullScale * 100) + '%';
+    }
+    function startDrag(e) {
+      if (fullScale <= 1) return;
+      isDragging = true;
+      dragStartX = e.clientX - translateX;
+      dragStartY = e.clientY - translateY;
+      var img = document.getElementById('full-image');
+      img.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+    function doDrag(e) {
+      if (!isDragging) return;
+      translateX = e.clientX - dragStartX;
+      translateY = e.clientY - dragStartY;
+      var img = document.getElementById('full-image');
+      img.style.transform = 'scale(' + fullScale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
+    }
+    function endDrag() {
+      isDragging = false;
+      var img = document.getElementById('full-image');
+      if (img) img.style.cursor = 'grab';
+    }
+    </script>
+</body>
+</html>

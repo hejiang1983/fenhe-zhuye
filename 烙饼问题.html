@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圆形拖拽与层叠切换</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 28px;
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+            width: 100%;
+        }
+        
+        .container {
+            flex: 1;
+            position: relative;
+            width: 70%;
+            height: calc(100vh - 120px);
+            overflow: hidden;
+        }
+        
+        .timer-panel {
+            width: 30%;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .timer-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .timer-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 200px;
+        }
+        
+        .timer-btn {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .timer-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .timer-btn.add-time {
+            background-color: #2ecc71;
+        }
+        
+        .timer-btn.add-time:hover {
+            background-color: #27ae60;
+        }
+        
+        #big-circle {
+            position: absolute;
+            width: 6.6cm; /* 半径3.3cm -> 直径6.6cm */
+            height: 6.6cm;
+            background-color: #1a1a1a;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+        
+        .small-circle {
+            position: absolute;
+            width: 3cm; /* 半径1.5cm -> 直径3cm */
+            height: 3cm;
+            background-color: #d3d3d3;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+            font-weight: bold;
+            font-size: 16px;
+            user-select: none;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        .small-circle:hover {
+            transform: scale(1.05);
+        }
+        
+        .small-circle.yellow {
+            background-color: #ffeb3b !important;
+            box-shadow: 0 0 15px rgba(255, 235, 59, 0.7);
+        }
+        
+        .controls {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .status {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>圆形拖拽与层叠切换</h1>
+    </header>
+    
+    <div class="main-content">
+        <div class="container">
+            <div id="big-circle"></div>
+            <!-- 小圆将通过JavaScript动态生成 -->
+            <div class="status" id="status">双击小圆切换层叠顺序，拖拽小圆到大圆内部使其变为黄色</div>
+        </div>
+        
+        <div class="timer-panel">
+            <div class="timer-display" id="timerDisplay">0分钟</div>
+            <div class="timer-controls">
+                <button class="timer-btn add-time" id="addTimeBtn">+3分钟</button>
+                <button class="timer-btn" id="resetTimerBtn">重置计时器</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button id="resetBtn">重置位置</button>
+        <button id="helpBtn">操作说明</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.container');
+            const bigCircle = document.getElementById('big-circle');
+            const resetBtn = document.getElementById('resetBtn');
+            const helpBtn = document.getElementById('helpBtn');
+            const status = document.getElementById('status');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const addTimeBtn = document.getElementById('addTimeBtn');
+            const resetTimerBtn = document.getElementById('resetTimerBtn');
+            
+            // 计时器变量（以分钟为单位）
+            let totalMinutes = 0;
+            
+            // 更新计时器显示
+            function updateTimerDisplay() {
+                timerDisplay.textContent = `${totalMinutes}分钟`;
+            }
+            
+            // 增加3分钟
+            addTimeBtn.addEventListener('click', function() {
+                totalMinutes += 3;
+                updateTimerDisplay();
+            });
+            
+            // 重置计时器
+            resetTimerBtn.addEventListener('click', function() {
+                totalMinutes = 0;
+                updateTimerDisplay();
+            });
+            
+            // 获取容器尺寸
+            const containerRect = container.getBoundingClientRect();
+            
+            // 获取大圆的尺寸和位置
+            const bigCircleRect = bigCircle.getBoundingClientRect();
+            
+            // 计算大圆中心点坐标（相对于容器）
+            const bigCircleCenterX = bigCircleRect.left - containerRect.left + bigCircleRect.width / 2;
+            const bigCircleCenterY = bigCircleRect.top - containerRect.top + bigCircleRect.height / 2;
+            const bigCircleRadius = bigCircleRect.width / 2;
+            
+            // 创建6个小圆，两两成对，初始位置排成一列放在左侧
+            const pairs = [
+                { id: 1, x: 50, y: 80, zIndex: 10 },
+                { id: 1, x: 50, y: 80, zIndex: 9 },
+                { id: 2, x: 50, y: 180, zIndex: 10 },
+                { id: 2, x: 50, y: 180, zIndex: 9 },
+                { id: 3, x: 50, y: 280, zIndex: 10 },
+                { id: 3, x: 50, y: 280, zIndex: 9 }
+            ];
+            
+            // 存储所有小圆元素
+            const smallCircles = [];
+            
+            // 创建小圆
+            pairs.forEach((pair, index) => {
+                const smallCircle = document.createElement('div');
+                smallCircle.className = 'small-circle';
+                smallCircle.style.left = pair.x + 'px';
+                smallCircle.style.top = pair.y + 'px';
+                smallCircle.style.zIndex = pair.zIndex;
+                smallCircle.textContent = pair.id;
+                smallCircle.dataset.pairId = pair.id;
+                smallCircle.dataset.index = index;
+                smallCircle.dataset.isTop = (pair.zIndex === 10); // 标记是否为顶层
+                
+                container.appendChild(smallCircle);
+                smallCircles.push(smallCircle);
+                
+                // 添加双击事件 - 切换层叠顺序并检查是否变色
+                let clickTimer = null;
+                smallCircle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    
+                    // 如果是双击，则切换层叠顺序
+                    if (clickTimer) {
+                        clearTimeout(clickTimer);
+                        clickTimer = null;
+                        toggleZIndex(parseInt(this.dataset.pairId));
+                        // 检查是否在大圆内部，如果是则变色
+                        checkIfInBigCircleAndColor(parseInt(this.dataset.pairId));
+                    } else {
+                        // 设置单击计时器
+                        clickTimer = setTimeout(() => {
+                            clickTimer = null;
+                        }, 300); // 300ms内再次点击视为双击
+                    }
+                });
+                
+                // 添加拖拽功能
+                makeDraggable(smallCircle);
+            });
+            
+            // 切换成对小圆的层叠顺序
+            function toggleZIndex(pairId) {
+                const pairCircles = smallCircles.filter(circle => 
+                    parseInt(circle.dataset.pairId) === pairId
+                );
+                
+                pairCircles.forEach(circle => {
+                    const currentZIndex = parseInt(circle.style.zIndex);
+                    circle.style.zIndex = currentZIndex === 10 ? 9 : 10;
+                    // 更新顶层标记
+                    circle.dataset.isTop = (circle.style.zIndex === '10');
+                });
+                
+                status.textContent = `已切换第${pairId}对小圆的层叠顺序`;
+                setTimeout(() => {
+                    status.textContent = '双击小圆切换层叠顺序，拖拽小圆到大圆内部使其变为黄色';
+                }, 2000);
+            }
+            
+            // 检查小圆是否在大圆内部并变色
+            function checkIfInBigCircleAndColor(pairId) {
+                const pairCircles = smallCircles.filter(circle => 
+                    parseInt(circle.dataset.pairId) === pairId
+                );
+                
+                pairCircles.forEach(circle => {
+                    // 检查是否在大圆内部，如果是则变色
+                    if (isCircleInsideBigCircle(circle)) {
+                        // 只有非顶层的小圆才变色
+                        if (circle.dataset.isTop !== 'true') {
+                            circle.classList.add('yellow');
+                            
+                            // 同时将同组的另一个非顶层小圆也变为黄色
+                            const pairCirclesToColor = smallCircles.filter(c => 
+                                parseInt(c.dataset.pairId) === pairId && c.dataset.isTop !== 'true'
+                            );
+                            
+                            pairCirclesToColor.forEach(c => {
+                                c.classList.add('yellow');
+                            });
+                            
+                            status.textContent = `第${pairId}对小圆已变为黄色`;
+                        }
+                    }
+                });
+            }
+            
+            // 判断小圆是否在大圆内部（优化版）
+            function isCircleInsideBigCircle(smallCircle) {
+                const smallCircleRect = smallCircle.getBoundingClientRect();
+                
+                // 计算小圆中心点坐标（相对于容器）
+                const smallCircleCenterX = smallCircleRect.left - containerRect.left + smallCircleRect.width / 2;
+                const smallCircleCenterY = smallCircleRect.top - containerRect.top + smallCircleRect.height / 2;
+                
+                // 计算两个圆心之间的距离
+                const distance = Math.sqrt(
+                    Math.pow(smallCircleCenterX - bigCircleCenterX, 2) + 
+                    Math.pow(smallCircleCenterY - bigCircleCenterY, 2)
+                );
+                
+                // 小圆半径
+                const smallCircleRadius = smallCircleRect.width / 2;
+                
+                // 添加5像素的容差，提高灵敏度
+                const tolerance = 5;
+                
+                // 如果距离 + 小圆半径 <= 大圆半径 + 容差，则表示小圆在大圆内部
+                const isInside = (distance + smallCircleRadius) <= (bigCircleRadius + tolerance);
+                
+                return isInside;
+            }
+            
+            // 使元素可拖拽
+            function makeDraggable(element) {
+                let isDragging = false;
+                let offsetX, offsetY;
+                let originalZIndex = element.style.zIndex;
+                let originalIsTop = element.dataset.isTop;
+                
+                element.addEventListener('mousedown', startDrag);
+                
+                function startDrag(e) {
+                    isDragging = true;
+                    
+                    // 保存原始zIndex和顶层状态
+                    originalZIndex = element.style.zIndex;
+                    originalIsTop = element.dataset.isTop;
+                    
+                    // 计算鼠标位置与元素位置的偏移
+                    const rect = element.getBoundingClientRect();
+                    offsetX = e.clientX - rect.left;
+                    offsetY = e.clientY - rect.top;
+                    
+                    // 将当前元素置于最上层
+                    element.style.zIndex = 100;
+                    
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', stopDrag);
+                    
+                    e.preventDefault();
+                }
+                
+                function drag(e) {
+                    if (!isDragging) return;
+                    
+                    // 计算新位置
+                    let newX = e.clientX - containerRect.left - offsetX;
+                    let newY = e.clientY - containerRect.top - offsetY;
+                    
+                    // 限制在容器范围内
+                    newX = Math.max(0, Math.min(newX, containerRect.width - element.offsetWidth));
+                    newY = Math.max(0, Math.min(newY, containerRect.height - element.offsetHeight));
+                    
+                    // 移动当前元素
+                    element.style.left = newX + 'px';
+                    element.style.top = newY + 'px';
+                    
+                    // 移动同组的另一个元素
+                    const pairId = parseInt(element.dataset.pairId);
+                    const pairCircles = smallCircles.filter(circle => 
+                        parseInt(circle.dataset.pairId) === pairId && circle !== element
+                    );
+                    
+                    pairCircles.forEach(circle => {
+                        circle.style.left = newX + 'px';
+                        circle.style.top = newY + 'px';
+                    });
+                    
+                    // 检查是否与大圆接触
+                    checkContactWithBigCircle(element);
+                }
+                
+                function stopDrag() {
+                    isDragging = false;
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', stopDrag);
+                    
+                    // 恢复原始zIndex和顶层状态 - 拖拽结束时不会改变层叠顺序
+                    element.style.zIndex = originalZIndex;
+                    element.dataset.isTop = originalIsTop;
+                    
+                    // 在拖拽结束时检查是否在大圆内部并变色
+                    const pairId = parseInt(element.dataset.pairId);
+                    checkIfInBigCircleAndColor(pairId);
+                    
+                    // 更新状态
+                    const pairCircles = smallCircles.filter(circle => 
+                        parseInt(circle.dataset.pairId) === pairId
+                    );
+                    const isAnyYellow = pairCircles.some(circle => circle.classList.contains('yellow'));
+                    
+                    if (isAnyYellow) {
+                        status.textContent = `第${pairId}对小圆已变为黄色`;
+                    } else {
+                        status.textContent = '双击小圆切换层叠顺序，拖拽小圆到大圆内部使其变为黄色';
+                    }
+                }
+            }
+            
+            // 检查小圆是否与大圆接触
+            function checkContactWithBigCircle(element) {
+                // 只有非顶层的小圆才变色
+                if (element.dataset.isTop !== 'true' && isCircleInsideBigCircle(element)) {
+                    element.classList.add('yellow');
+                    
+                    // 同时将同组的另一个非顶层小圆也变为黄色
+                    const pairId = parseInt(element.dataset.pairId);
+                    const pairCircles = smallCircles.filter(circle => 
+                        parseInt(circle.dataset.pairId) === pairId && circle.dataset.isTop !== 'true'
+                    );
+                    
+                    pairCircles.forEach(circle => {
+                        circle.classList.add('yellow');
+                    });
+                }
+            }
+            
+            // 重置按钮功能
+            resetBtn.addEventListener('click', function() {
+                pairs.forEach((pair, index) => {
+                    smallCircles[index].style.left = pair.x + 'px';
+                    smallCircles[index].style.top = pair.y + 'px';
+                    smallCircles[index].style.zIndex = pair.zIndex;
+                    smallCircles[index].classList.remove('yellow');
+                    smallCircles[index].dataset.isTop = (pair.zIndex === 10);
+                });
+                
+                // 同时重置计时器
+                totalMinutes = 0;
+                updateTimerDisplay();
+                
+                status.textContent = '已重置所有小圆的位置和颜色';
+                setTimeout(() => {
+                    status.textContent = '双击小圆切换层叠顺序，拖拽小圆到大圆内部使其变为黄色';
+                }, 2000);
+            });
+            
+            // 帮助按钮功能
+            helpBtn.addEventListener('click', function() {
+                alert("操作说明：\n\n1. 双击小圆可以切换成对圆形的层叠顺序\n2. 将小圆拖拽到大圆内部时，接触到大圆的小圆会永久变为黄色\n3. 小圆是成对出现的，两个小圆会保持重叠状态\n4. 只有底层小圆在完全进入大圆内部时会变色\n5. 拖拽结束时不会改变小圆的层叠顺序\n6. 右侧计时器可以手动累加时间，重置位置时计时器也会归零");
+            });
+            
+            // 窗口大小改变时重新计算容器尺寸
+            window.addEventListener('resize', function() {
+                const newContainerRect = container.getBoundingClientRect();
+                containerRect.width = newContainerRect.width;
+                containerRect.height = newContainerRect.height;
+            });
+        });
+    </script>
+</body>
+</html>

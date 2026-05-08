@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小兔子回家 - 数学分类游戏</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transform: scale(0.9);
+            transform-origin: top center;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        
+        h1 {
+            color: #ff6b88;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .game-container {
+            display: flex;
+            width: 100%;
+            max-width: 1067px;
+            height: 600px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+        
+        .rabbits-area {
+            flex: 3;
+            position: relative;
+            border-right: 2px dashed #ccc;
+            height: 100%;
+            overflow: visible; /* 修改为可见 */
+        }
+        
+        .homes-area {
+            flex: 1;
+            padding-left: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            height: 100%;
+            position: relative;
+        }
+        
+        .home {
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .home-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            font-size: 12px;
+        }
+        
+        .home-content {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 4px;
+            width: 100%;
+            justify-items: center;
+            z-index: 2;
+        }
+        
+        #home1 {
+            background-color: #ff9aa2;
+        }
+        
+        #home2 {
+            background-color: #ffb7b2;
+        }
+        
+        #home3 {
+            background-color: #ffdac1;
+        }
+        
+        .rabbit {
+            position: absolute;
+            width: 36px;
+            height: 43px;
+            background-color: #fff;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            z-index: 10;
+            font-size: 12px;
+            touch-action: none;
+        }
+        
+        .rabbit:hover {
+            transform: scale(1.1);
+        }
+        
+        .rabbit::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            width: 14px;
+            height: 18px;
+            background-color: #fff;
+            border-radius: 50%;
+            box-shadow: -3px -3px 0 -2px #fff;
+        }
+        
+        .rabbit::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            width: 14px;
+            height: 18px;
+            background-color: #fff;
+            border-radius: 50%;
+            box-shadow: 3px -3px 0 -2px #fff;
+        }
+        
+        .rabbit .ear {
+            position: absolute;
+            top: -14px;
+            width: 7px;
+            height: 18px;
+            background-color: #ffb6c1;
+            border-radius: 3px;
+        }
+        
+        .rabbit .ear.left {
+            left: 10px;
+            transform: rotate(-15deg);
+        }
+        
+        .rabbit .ear.right {
+            right: 10px;
+            transform: rotate(15deg);
+        }
+        
+        .rabbit.dragging {
+            z-index: 1000;
+            opacity: 0.8;
+            transform: scale(1.1);
+            position: fixed !important; /* 拖拽时改为固定定位 */
+        }
+        
+        .rabbit.in-home {
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            margin: 2px;
+            z-index: 3;
+        }
+        
+        .reset-btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: #ff6b88;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+        
+        .reset-btn:hover {
+            background-color: #ff4757;
+            transform: translateY(-2px);
+        }
+        
+        .message {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+            font-size: 14px;
+        }
+        
+        .message.show {
+            opacity: 1;
+        }
+        
+        .message.error {
+            background-color: #ff4757;
+        }
+    </style>
+</head>
+<body>
+    <h1>小兔子回家 - 数学分类游戏</h1>
+    
+    <div class="game-container">
+        <div class="rabbits-area" id="rabbitsArea"></div>
+        <div class="homes-area">
+            <div class="home" id="home1" data-type="1">
+                <div class="home-title">只有一个因数的数</div>
+                <div class="home-content"></div>
+            </div>
+            <div class="home" id="home2" data-type="prime">
+                <div class="home-title">只有1和它本身两个因数的数</div>
+                <div class="home-content"></div>
+            </div>
+            <div class="home" id="home3" data-type="composite">
+                <div class="home-title">有两个以上因数的数</div>
+                <div class="home-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="reset-btn" id="resetBtn">重置游戏</button>
+    
+    <div class="message" id="message"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rabbitsArea = document.getElementById('rabbitsArea');
+            const homes = document.querySelectorAll('.home');
+            const resetBtn = document.getElementById('resetBtn');
+            const message = document.getElementById('message');
+            
+            let draggedRabbit = null;
+            let startX, startY;
+            let initialRabbitX, initialRabbitY;
+            
+            // 数字分类函数
+            function classifyNumber(num) {
+                if (num === 1) return '1'; // 1只有一个因数
+                
+                // 质数判断
+                if (num === 2) return 'prime';
+                if (num % 2 === 0) return 'composite';
+                
+                for (let i = 3; i <= Math.sqrt(num); i += 2) {
+                    if (num % i === 0) return 'composite';
+                }
+                
+                return 'prime'; // 质数
+            }
+            
+            // 创建小兔子
+            function createRabbits() {
+                rabbitsArea.innerHTML = '';
+                
+                // 存储已使用的位置
+                const usedPositions = [];
+                
+                for (let i = 1; i <= 20; i++) {
+                    const rabbit = document.createElement('div');
+                    rabbit.className = 'rabbit';
+                    rabbit.textContent = i;
+                    rabbit.setAttribute('data-number', i);
+                    
+                    // 随机位置，确保不重叠
+                    let x, y;
+                    let overlapping;
+                    const rabbitWidth = 36;
+                    const rabbitHeight = 43;
+                    const areaWidth = rabbitsArea.offsetWidth - rabbitWidth;
+                    const areaHeight = rabbitsArea.offsetHeight - rabbitHeight;
+                    
+                    do {
+                        overlapping = false;
+                        x = Math.floor(Math.random() * areaWidth);
+                        y = Math.floor(Math.random() * areaHeight);
+                        
+                        // 检查是否与已有兔子重叠
+                        for (const pos of usedPositions) {
+                            if (Math.abs(x - pos.x) < rabbitWidth && Math.abs(y - pos.y) < rabbitHeight) {
+                                overlapping = true;
+                                break;
+                            }
+                        }
+                    } while (overlapping);
+                    
+                    usedPositions.push({x, y});
+                    
+                    rabbit.style.left = `${x}px`;
+                    rabbit.style.top = `${y}px`;
+                    rabbit.dataset.originalX = x;
+                    rabbit.dataset.originalY = y;
+                    
+                    // 添加耳朵
+                    const leftEar = document.createElement('div');
+                    leftEar.className = 'ear left';
+                    rabbit.appendChild(leftEar);
+                    
+                    const rightEar = document.createElement('div');
+                    rightEar.className = 'ear right';
+                    rabbit.appendChild(rightEar);
+                    
+                    // 触摸事件
+                    rabbit.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    rabbit.addEventListener('mousedown', handleMouseStart);
+                    
+                    rabbitsArea.appendChild(rabbit);
+                }
+            }
+            
+            // 触摸开始
+            function handleTouchStart(e) {
+                e.preventDefault();
+                draggedRabbit = e.target;
+                const touch = e.touches[0];
+                startX = touch.pageX;
+                startY = touch.pageY;
+                
+                initialRabbitX = parseInt(draggedRabbit.style.left) || 0;
+                initialRabbitY = parseInt(draggedRabbit.style.top) || 0;
+                
+                draggedRabbit.classList.add('dragging');
+                
+                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                document.addEventListener('touchend', handleTouchEnd);
+            }
+            
+            // 触摸移动
+            function handleTouchMove(e) {
+                if (!draggedRabbit) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                
+                // 使用页面坐标
+                const x = touch.pageX - draggedRabbit.offsetWidth/2;
+                const y = touch.pageY - draggedRabbit.offsetHeight/2;
+                
+                draggedRabbit.style.left = `${x}px`;
+                draggedRabbit.style.top = `${y}px`;
+            }
+            
+            // 触摸结束
+            function handleTouchEnd(e) {
+                if (!draggedRabbit) return;
+                
+                document.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', handleTouchEnd);
+                
+                const rabbitRect = draggedRabbit.getBoundingClientRect();
+                const rabbitCenter = {
+                    x: rabbitRect.left + rabbitRect.width / 2,
+                    y: rabbitRect.top + rabbitRect.height / 2
+                };
+                
+                let droppedInHome = false;
+                
+                homes.forEach(home => {
+                    const homeRect = home.getBoundingClientRect();
+                    if (
+                        rabbitCenter.x >= homeRect.left &&
+                        rabbitCenter.x <= homeRect.right &&
+                        rabbitCenter.y >= homeRect.top &&
+                        rabbitCenter.y <= homeRect.bottom
+                    ) {
+                        const number = parseInt(draggedRabbit.getAttribute('data-number'));
+                        const correctType = classifyNumber(number);
+                        const homeType = home.getAttribute('data-type');
+                        
+                        if (correctType === homeType) {
+                            // 正确放置
+                            showMessage('正确！小兔子回家了！');
+                            draggedRabbit.classList.remove('dragging');
+                            draggedRabbit.classList.add('in-home');
+                            draggedRabbit.style.position = 'relative';
+                            draggedRabbit.style.left = 'auto';
+                            draggedRabbit.style.top = 'auto';
+                            home.querySelector('.home-content').appendChild(draggedRabbit);
+                            
+                            // 移除事件监听
+                            draggedRabbit.removeEventListener('touchstart', handleTouchStart);
+                            draggedRabbit.removeEventListener('mousedown', handleMouseStart);
+                        } else {
+                            // 错误放置
+                            showMessage('错误！请重新放置！', true);
+                            draggedRabbit.style.position = 'absolute';
+                            draggedRabbit.style.left = `${initialRabbitX}px`;
+                            draggedRabbit.style.top = `${initialRabbitY}px`;
+                        }
+                        
+                        droppedInHome = true;
+                    }
+                });
+                
+                if (!droppedInHome) {
+                    // 没有放到家中，回到原位置
+                    draggedRabbit.style.position = 'absolute';
+                    draggedRabbit.style.left = `${initialRabbitX}px`;
+                    draggedRabbit.style.top = `${initialRabbitY}px`;
+                }
+                
+                draggedRabbit.classList.remove('dragging');
+                draggedRabbit = null;
+            }
+            
+            // 鼠标开始
+            function handleMouseStart(e) {
+                draggedRabbit = e.target;
+                startX = e.pageX;
+                startY = e.pageY;
+                
+                initialRabbitX = parseInt(draggedRabbit.style.left) || 0;
+                initialRabbitY = parseInt(draggedRabbit.style.top) || 0;
+                
+                draggedRabbit.classList.add('dragging');
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseEnd);
+            }
+            
+            // 鼠标移动
+            function handleMouseMove(e) {
+                if (!draggedRabbit) return;
+                
+                // 使用页面坐标
+                const x = e.pageX - draggedRabbit.offsetWidth/2;
+                const y = e.pageY - draggedRabbit.offsetHeight/2;
+                
+                draggedRabbit.style.left = `${x}px`;
+                draggedRabbit.style.top = `${y}px`;
+            }
+            
+            // 鼠标结束
+            function handleMouseEnd(e) {
+                if (!draggedRabbit) return;
+                
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseEnd);
+                
+                const rabbitRect = draggedRabbit.getBoundingClientRect();
+                const rabbitCenter = {
+                    x: rabbitRect.left + rabbitRect.width / 2,
+                    y: rabbitRect.top + rabbitRect.height / 2
+                };
+                
+                let droppedInHome = false;
+                
+                homes.forEach(home => {
+                    const homeRect = home.getBoundingClientRect();
+                    if (
+                        rabbitCenter.x >= homeRect.left &&
+                        rabbitCenter.x <= homeRect.right &&
+                        rabbitCenter.y >= homeRect.top &&
+                        rabbitCenter.y <= homeRect.bottom
+                    ) {
+                        const number = parseInt(draggedRabbit.getAttribute('data-number'));
+                        const correctType = classifyNumber(number);
+                        const homeType = home.getAttribute('data-type');
+                        
+                        if (correctType === homeType) {
+                            // 正确放置
+                            showMessage('正确！小兔子回家了！');
+                            draggedRabbit.classList.remove('dragging');
+                            draggedRabbit.classList.add('in-home');
+                            draggedRabbit.style.position = 'relative';
+                            draggedRabbit.style.left = 'auto';
+                            draggedRabbit.style.top = 'auto';
+                            home.querySelector('.home-content').appendChild(draggedRabbit);
+                            
+                            // 移除事件监听
+                            draggedRabbit.removeEventListener('touchstart', handleTouchStart);
+                            draggedRabbit.removeEventListener('mousedown', handleMouseStart);
+                        } else {
+                            // 错误放置
+                            showMessage('错误！请重新放置！', true);
+                            draggedRabbit.style.position = 'absolute';
+                            draggedRabbit.style.left = `${initialRabbitX}px`;
+                            draggedRabbit.style.top = `${initialRabbitY}px`;
+                        }
+                        
+                        droppedInHome = true;
+                    }
+                });
+                
+                if (!droppedInHome) {
+                    // 没有放到家中，回到原位置
+                    draggedRabbit.style.position = 'absolute';
+                    draggedRabbit.style.left = `${initialRabbitX}px`;
+                    draggedRabbit.style.top = `${initialRabbitY}px`;
+                }
+                
+                draggedRabbit.classList.remove('dragging');
+                draggedRabbit = null;
+            }
+            
+            // 显示消息
+            function showMessage(text, isError = false) {
+                message.textContent = text;
+                message.className = isError ? 'message error show' : 'message show';
+                
+                setTimeout(() => {
+                    message.className = 'message';
+                }, 2000);
+            }
+            
+            // 重置游戏
+            resetBtn.addEventListener('click', function() {
+                homes.forEach(home => {
+                    const rabbitsInHome = home.querySelectorAll('.rabbit');
+                    rabbitsInHome.forEach(rabbit => {
+                        rabbit.classList.remove('in-home');
+                        rabbit.style.position = 'absolute';
+                        rabbit.style.left = `${rabbit.dataset.originalX}px`;
+                        rabbit.style.top = `${rabbit.dataset.originalY}px`;
+                        
+                        // 重新添加事件监听
+                        rabbit.addEventListener('touchstart', handleTouchStart, { passive: false });
+                        rabbit.addEventListener('mousedown', handleMouseStart);
+                    });
+                    home.querySelector('.home-content').innerHTML = '';
+                });
+                
+                createRabbits();
+                showMessage('游戏已重置！');
+            });
+            
+            // 初始化游戏
+            createRabbits();
+        });
+    </script>
+</body>
+</html>

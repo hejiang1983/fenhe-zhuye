@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风河的导航页</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        /* 页面背景 */
+        body {
+            background: linear-gradient(135deg, #74ebd5 0%, #acb6e5 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+
+        /* 主容器 */
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding-bottom: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* 顶部 Banner (已恢复为静态 div) */
+        .banner {
+            margin: 15px;
+            height: 160px;
+            border-radius: 20px;
+            /* 背景图链接，您可以替换为您需要的图片 */
+            background: url('https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?auto=format&fit=crop&w=1000&q=80') center/cover no-repeat;
+        }
+
+        /* 头像 (已恢复为静态 div) */
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            margin: -40px auto 0;
+            display: block;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            /* 头像背景配置 */
+            background: #008cff url('https://api.dicebear.com/7.x/initials/svg?seed=S&backgroundColor=008cff') center/cover;
+        }
+
+        /* 标题文字区域 */
+        .header-text {
+            text-align: center;
+            margin: 20px 0 40px;
+        }
+
+        .header-text h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .header-text p {
+            font-size: 14px;
+            color: #777;
+            margin-top: 8px;
+        }
+
+        /* 核心自适应网格 */
+        .link-grid {
+            display: grid;
+            /* 自动填充布局：卡片宽度最小280px，在大屏上自动分栏 */
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 0 30px;
+            align-items: start;
+        }
+
+        /* 抽屉项样式 */
+        .accordion-item {
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #eee;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .accordion-item:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transform: translateY(-2px);
+        }
+
+        /* 主标题卡片 */
+        .link-card {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .icon-wrapper {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+            color: #fff;
+        }
+
+        .link-card span {
+            font-weight: 600;
+            color: #444;
+        }
+
+        .arrow {
+            margin-left: auto;
+            color: #ccc;
+            transition: transform 0.3s;
+        }
+
+        /* 展开状态 */
+        .accordion-item.active .arrow {
+            transform: rotate(180deg);
+        }
+
+        .accordion-item.active {
+            border-color: #acb6e5;
+        }
+
+        /* 子链接容器 */
+        .sub-links-wrapper {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #f9fbff;
+        }
+
+        .sub-links {
+            padding: 5px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sub-links a {
+            text-decoration: none;
+            color: #666;
+            font-size: 14px;
+            padding: 12px 15px;
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #f0f0f0;
+            transition: all 0.2s;
+        }
+
+        .sub-links a:hover {
+            background: #f0f4ff;
+            color: #3f51b5;
+            padding-left: 20px; /* 悬停轻微位移特效 */
+            border-color: #d0d7ff;
+        }
+
+        /* 移动端微调 */
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 10px;
+            }
+            .link-grid {
+                padding: 0 15px;
+            }
+            .header-text {
+                margin-bottom: 25px;
+            }
+            .banner {
+                margin: 10px 10px 0 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="banner"></div>
+            <div class="avatar"></div>
+            
+            <div class="header-text">
+                <h1>风何的小程序</h1>
+                <p>点击下方分类展开详细内容</p>
+            </div>
+        </header>
+
+        <main class="link-grid">
+            
+            <div class="accordion-item">
+                <div class="link-card" onclick="toggleAccordion(this)">
+                    <div class="icon-wrapper" style="background: #4caf50;">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <span>数学课件</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </div>
+                <div class="sub-links-wrapper">
+                    <div class="sub-links">
+                        <a href="projects\index.html" target="_blank"><i class="fas fa-file-powerpoint"></i> 二年级下册《复习与关联》</a>
+                        <a href="zhishuheshu\index.html" target="_blank"><i class="fas fa-file-powerpoint"></i> 质数和合数</a>
+                        <a href="齿轮.html" target="_blank"><i class="fas fa-file-powerpoint"></i> 自行车里的数学</a>
+                        <a href="gcwt\主程序.html" target="_blank"><i class="fas fa-file-powerpoint"></i> 观测物体</a>
+                        <a href="烙饼问题.html" target="_blank"><i class="fas fa-file-powerpoint"></i> 烙饼问题</a>
+                        <a href="#"><i class="fas fa-plus"></i> 开发中...</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="link-card" onclick="toggleAccordion(this)">
+                    <div class="icon-wrapper" style="background: #2196f3;">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <span>办公应用</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </div>
+                <div class="sub-links-wrapper">
+                    <div class="sub-links">
+                        <a href="gongwen.html" target="_blank"><i class="fas fa-file-word"></i> Markdown格式转公文格式</a>
+                        <a href="#"><i class="fas fa-plus"></i> 开发中...</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="link-card" onclick="toggleAccordion(this)">
+                    <div class="icon-wrapper" style="background: #ff9800;">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <span>休闲娱乐</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </div>
+                <div class="sub-links-wrapper">
+                    <div class="sub-links">
+                        <a href="chezhi.html" target="_blank"><i class="fas fa-dice"></i> 汉字测算</a>
+                        <a href="#"><i class="fas fa-plus"></i> 开发中...</a>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        function toggleAccordion(element) {
+            const item = element.parentElement;
+            const content = item.querySelector('.sub-links-wrapper');
+            const isActive = item.classList.contains('active');
+
+            // 切换当前点击项的状态
+            if (!isActive) {
+                item.classList.add('active');
+                // 通过内容的真实高度实现丝滑动画
+                content.style.maxHeight = content.scrollHeight + "px";
+            } else {
+                item.classList.remove('active');
+                content.style.maxHeight = "0";
+            }
+        }
+    </script>
+</body>
+</html>

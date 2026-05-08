@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>正方形排列探索</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .question {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .slider-label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .slider {
+            width: 200px;
+        }
+        .workspace {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            border: 1px dashed #ccc;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .original-square {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #4CAF50;
+            border: 2px solid #2E7D32;
+            cursor: move;
+        }
+        .cloned-square {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #2196F3;
+            border: 1px solid #0D47A1;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .answer-btn {
+            padding: 10px 20px;
+            background-color: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .answer-btn:hover {
+            background-color: #F57C00;
+        }
+        .answer {
+            margin-top: 20px;
+            font-size: 16px;
+            text-align: left;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .answer-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2E7D32;
+        }
+        .calculation {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .factors {
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="slider-container">
+            <span class="slider-label">n =</span>
+            <input type="range" min="2" max="20" value="4" class="slider" id="nSlider">
+            <span id="nValue" class="slider-label">4</span>
+        </div>
+        <div class="question" id="question">用4个小正方形摆成长方形，可以有几种摆法？</div>
+    </div>
+    
+    <div class="workspace" id="workspace">
+        <div class="original-square" id="originalSquare"></div>
+    </div>
+    
+    <button class="answer-btn" id="answerBtn">显示答案</button>
+    <div class="answer" id="answer"></div>
+    
+    <script>
+        const nSlider = document.getElementById('nSlider');
+        const nValue = document.getElementById('nValue');
+        const question = document.getElementById('question');
+        const workspace = document.getElementById('workspace');
+        const originalSquare = document.getElementById('originalSquare');
+        const answerBtn = document.getElementById('answerBtn');
+        const answer = document.getElementById('answer');
+        
+        let n = 4;
+        let clonedSquares = [];
+        let isDragging = false;
+        let currentClone = null;
+        let offsetX, offsetY;
+        
+        // 更新n的值
+        nSlider.addEventListener('input', function() {
+            n = parseInt(this.value);
+            nValue.textContent = n;
+            question.textContent = `用${n}个小正方形摆成长方形，可以有几种摆法？`;
+            clearClones();
+        });
+        
+        // 原始方块的拖动开始
+        originalSquare.addEventListener('mousedown', startDrag);
+        originalSquare.addEventListener('touchstart', startDrag, {passive: false});
+        
+        // 工作区的拖动结束
+        workspace.addEventListener('mouseup', endDrag);
+        workspace.addEventListener('touchend', endDrag);
+        
+        // 显示答案
+        answerBtn.addEventListener('click', showAnswer);
+        
+        function startDrag(e) {
+            e.preventDefault();
+            if (clonedSquares.length >= n) return;
+            
+            isDragging = true;
+            
+            // 创建克隆方块
+            currentClone = document.createElement('div');
+            currentClone.className = 'cloned-square';
+            currentClone.textContent = clonedSquares.length + 1;
+            workspace.appendChild(currentClone);
+            
+            // 设置初始位置
+            const rect = workspace.getBoundingClientRect();
+            let clientX, clientY;
+            
+            if (e.type === 'mousedown') {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            } else {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            
+            offsetX = clientX - rect.left - originalSquare.offsetLeft;
+            offsetY = clientY - rect.top - originalSquare.offsetTop;
+            
+            // 添加移动事件
+            document.addEventListener('mousemove', dragClone);
+            document.addEventListener('touchmove', dragClone, {passive: false});
+        }
+        
+        function dragClone(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const rect = workspace.getBoundingClientRect();
+            let clientX, clientY;
+            
+            if (e.type === 'mousemove') {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            } else {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            
+            let x = clientX - rect.left - offsetX;
+            let y = clientY - rect.top - offsetY;
+            
+            // 限制在工作区内
+            x = Math.max(0, Math.min(x, rect.width - currentClone.offsetWidth));
+            y = Math.max(0, Math.min(y, rect.height - currentClone.offsetHeight));
+            
+            currentClone.style.left = x + 'px';
+            currentClone.style.top = y + 'px';
+        }
+        
+        function endDrag(e) {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            clonedSquares.push(currentClone);
+            currentClone = null;
+            
+            // 移除移动事件
+            document.removeEventListener('mousemove', dragClone);
+            document.removeEventListener('touchmove', dragClone);
+            
+            // 为克隆方块添加拖动功能
+            addDragToClones();
+        }
+        
+        function addDragToClones() {
+            clonedSquares.forEach(square => {
+                square.addEventListener('mousedown', startCloneDrag);
+                square.addEventListener('touchstart', startCloneDrag, {passive: false});
+            });
+        }
+        
+        function startCloneDrag(e) {
+            e.preventDefault();
+            const square = e.target;
+            const rect = square.getBoundingClientRect();
+            
+            let clientX, clientY;
+            
+            if (e.type === 'mousedown') {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            } else {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+            
+            document.addEventListener('mousemove', dragCloneElement);
+            document.addEventListener('touchmove', dragCloneElement, {passive: false});
+            document.addEventListener('mouseup', endCloneDrag);
+            document.addEventListener('touchend', endCloneDrag);
+            
+            function dragCloneElement(e) {
+                e.preventDefault();
+                
+                const workspaceRect = workspace.getBoundingClientRect();
+                let clientX, clientY;
+                
+                if (e.type === 'mousemove') {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                } else {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+                
+                let x = clientX - workspaceRect.left - offsetX;
+                let y = clientY - workspaceRect.top - offsetY;
+                
+                // 限制在工作区内
+                x = Math.max(0, Math.min(x, workspaceRect.width - square.offsetWidth));
+                y = Math.max(0, Math.min(y, workspaceRect.height - square.offsetHeight));
+                
+                square.style.left = x + 'px';
+                square.style.top = y + 'px';
+            }
+            
+            function endCloneDrag() {
+                document.removeEventListener('mousemove', dragCloneElement);
+                document.removeEventListener('touchmove', dragCloneElement);
+                document.removeEventListener('mouseup', endCloneDrag);
+                document.removeEventListener('touchend', endCloneDrag);
+            }
+        }
+        
+        function clearClones() {
+            clonedSquares.forEach(square => {
+                workspace.removeChild(square);
+            });
+            clonedSquares = [];
+        }
+        
+        function showAnswer() {
+            // 找出所有因数对
+            const factorPairs = [];
+            for (let i = 1; i <= Math.sqrt(n); i++) {
+                if (n % i === 0) {
+                    factorPairs.push([i, n/i]);
+                }
+            }
+            
+            // 构建计算过程
+            let calculationSteps = '';
+            factorPairs.forEach((pair, index) => {
+                calculationSteps += `<div class="calculation">
+                    ${index+1}. ${pair[0]} × ${pair[1]} = ${n}
+                </div>`;
+            });
+            
+            // 构建因数列表
+            const factors = factorPairs.flat();
+            const uniqueFactors = [...new Set(factors)].sort((a,b) => a-b);
+            const factorsList = uniqueFactors.join('、');
+            
+            answer.innerHTML = `
+                <div class="answer-title">用${n}个小正方形摆成长方形，可以有${factorPairs.length}种摆法：</div>
+                
+                <div><strong>计算过程：</strong></div>
+                ${calculationSteps}
+                
+                <div class="factors">
+                    ${n}的因数有：${factorsList}<br>
+                    因此可以摆成 ${factorPairs.length} 种不同的长方形
+                </div>
+            `;
+            answer.style.display = 'block';
+        }
+        
+        // 初始化为克隆方块添加拖动功能
+        addDragToClones();
+    </script>
+</body>
+</html>
