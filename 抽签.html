@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机抽取系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #2575fc, #6a11cb);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+        }
+        
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .upload-section, .input-section, .candidate-section, .selected-section {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        h2 {
+            color: #2575fc;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 6px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #6a11cb;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: #f8f9ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .upload-area:hover {
+            background-color: #eef2ff;
+            border-color: #2575fc;
+        }
+        
+        .upload-area i {
+            font-size: 24px;
+            color: #6a11cb;
+        }
+        
+        .upload-area p {
+            color: #666;
+            font-size: 0.8rem;
+            margin: 0;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-weight: bold;
+            color: #444;
+            font-size: 0.9rem;
+        }
+        
+        input {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            border-color: #6a11cb;
+            outline: none;
+        }
+        
+        .start-btn {
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 5px;
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .start-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .file-name {
+            color: #666;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .candidate-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 6px;
+            border: 1px solid #f0f0f0;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        
+        .candidate-name {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            color: #333;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 0.8rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .candidate-name.highlight {
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            transform: scale(1.03);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .candidate-name.selected {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: white;
+            transform: scale(1.03);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+        
+        .candidate-count {
+            margin-top: 6px;
+            color: #666;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+        
+        .selected-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 10px;
+            min-height: 50px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 8px;
+            border: 1px solid #f0f0f0;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        
+        .selected-name {
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            color: #333;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        
+        .countdown {
+            font-size: 1rem;
+            color: #6a11cb;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .status-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .reset-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .reset-btn:hover {
+            background: #ff5252;
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .content {
+                padding: 10px;
+                gap: 10px;
+            }
+            
+            .upload-section, .input-section, .candidate-section, .selected-section {
+                padding: 10px;
+            }
+            
+            .upload-area {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>随机抽取系统</h1>
+            <p>上传Excel名单（把名单放在excel表格的第一列）</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-section">
+                <h2>上传名单</h2>
+                <div class="upload-area" id="uploadArea">
+                    <i>📊</i>
+                    <p>点击或拖拽Excel文件到这里</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="upload-btn">选择文件</button>
+                        <div class="file-name" id="fileName">未选择文件</div>
+                    </div>
+                    <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls">
+                </div>
+            </div>
+            
+            <div class="candidate-section">
+                <h2>候选名单 <span id="candidateCount">(0个)</span></h2>
+                <div class="candidate-list" id="candidateList">
+                    <div class="candidate-name">请上传Excel文件查看候选名单</div>
+                </div>
+                <div class="candidate-count" id="candidateCountText">共 0 名候选，剩余 0 名</div>
+            </div>
+            
+            <div class="input-section">
+                <h2>抽取设置</h2>
+                <div class="input-group">
+                    <label for="countInput">抽取个数</label>
+                    <input type="number" id="countInput" min="1" placeholder="请输入要抽取的个数">
+                </div>
+                <div class="countdown" id="countdown">准备开始</div>
+                <button class="start-btn" id="startBtn" disabled>开始抽取</button>
+                <div class="status-info">
+                    <span id="remainingCount">剩余可抽取: 0个</span>
+                    <button class="reset-btn" id="resetBtn">重置抽取</button>
+                </div>
+            </div>
+            
+            <div class="selected-section">
+                <h2>已抽取名单 <span id="selectedCount">(0个)</span></h2>
+                <div class="selected-list" id="selectedList">
+                    <!-- 已抽取的名字将显示在这里 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const fileName = document.getElementById('fileName');
+            const countInput = document.getElementById('countInput');
+            const startBtn = document.getElementById('startBtn');
+            const countdown = document.getElementById('countdown');
+            const selectedList = document.getElementById('selectedList');
+            const candidateList = document.getElementById('candidateList');
+            const candidateCount = document.getElementById('candidateCount');
+            const candidateCountText = document.getElementById('candidateCountText');
+            const selectedCount = document.getElementById('selectedCount');
+            const remainingCount = document.getElementById('remainingCount');
+            const resetBtn = document.getElementById('resetBtn');
+            
+            let nameList = [];
+            let selectedNames = [];
+            let isDrawing = false;
+            let countdownInterval;
+            let timeLeft = 5;
+            let highlightInterval;
+            let candidateElements = [];
+            let currentHighlightedIndex = -1;
+            
+            // 上传区域点击事件
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // 文件选择事件
+            fileInput.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    fileName.textContent = file.name;
+                    
+                    // 解析Excel文件
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        
+                        // 获取第一个工作表
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                        
+                        // 提取名字（假设名字在第一列）
+                        nameList = [];
+                        jsonData.forEach(row => {
+                            if (row.length > 0 && row[0]) {
+                                nameList.push(row[0]);
+                            }
+                        });
+                        
+                        // 移除可能的空值
+                        nameList = nameList.filter(name => name && name.toString().trim() !== '');
+                        
+                        // 重置抽取状态
+                        resetDrawing();
+                        
+                        // 显示候选名单
+                        displayCandidateList();
+                        
+                        // 启用开始按钮
+                        if (nameList.length > 0) {
+                            startBtn.disabled = false;
+                            countInput.max = nameList.length;
+                            countInput.placeholder = `最多可抽取 ${nameList.length} 个`;
+                        } else {
+                            alert('Excel文件中没有找到有效的名字！');
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+            
+            // 重置抽取状态
+            function resetDrawing() {
+                selectedNames = [];
+                selectedList.innerHTML = '';
+                updateCounts();
+                candidateElements.forEach(el => {
+                    el.classList.remove('selected');
+                });
+                countdown.textContent = '准备开始';
+                startBtn.disabled = false;
+            }
+            
+            // 显示候选名单
+            function displayCandidateList() {
+                candidateList.innerHTML = '';
+                candidateElements = [];
+                
+                if (nameList.length === 0) {
+                    candidateList.innerHTML = '<div class="candidate-name">没有找到候选</div>';
+                    candidateCount.textContent = '(0个)';
+                    candidateCountText.textContent = '共 0 名候选，剩余 0 名';
+                    return;
+                }
+                
+                nameList.forEach((name, index) => {
+                    const nameElement = document.createElement('div');
+                    nameElement.className = 'candidate-name';
+                    nameElement.textContent = name;
+                    nameElement.dataset.index = index;
+                    candidateList.appendChild(nameElement);
+                    candidateElements.push(nameElement);
+                });
+                
+                updateCounts();
+            }
+            
+            // 更新计数显示
+            function updateCounts() {
+                const totalCount = nameList.length;
+                const selectedCountValue = selectedNames.length;
+                const remainingCountValue = totalCount - selectedCountValue;
+                
+                candidateCount.textContent = `(${totalCount}个)`;
+                candidateCountText.textContent = `共 ${totalCount} 名候选，剩余 ${remainingCountValue} 名`;
+                selectedCount.textContent = `(${selectedCountValue}个)`;
+                remainingCount.textContent = `剩余可抽取: ${remainingCountValue}个`;
+                
+                // 更新输入框最大值
+                countInput.max = remainingCountValue;
+            }
+            
+            // 开始候选名单动态变色
+            function startCandidateHighlighting() {
+                // 清除所有现有高亮
+                candidateElements.forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                
+                // 设置高亮
+                highlightInterval = setInterval(() => {
+                    // 清除上一个高亮
+                    if (currentHighlightedIndex >= 0) {
+                        candidateElements[currentHighlightedIndex].classList.remove('highlight');
+                    }
+                    
+                    // 从剩余候选中随机选择一个进行高亮
+                    const remainingIndices = candidateElements
+                        .map((el, index) => ({el, index}))
+                        .filter(({el}) => !selectedNames.includes(el.textContent))
+                        .map(({index}) => index);
+                    
+                    if (remainingIndices.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * remainingIndices.length);
+                        currentHighlightedIndex = remainingIndices[randomIndex];
+                        candidateElements[currentHighlightedIndex].classList.add('highlight');
+                    }
+                }, 100);
+            }
+            
+            // 停止候选名单动态变色
+            function stopCandidateHighlighting() {
+                clearInterval(highlightInterval);
+                
+                // 清除所有高亮
+                candidateElements.forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                
+                currentHighlightedIndex = -1;
+            }
+            
+            // 标记已选中的候选
+            function markSelectedCandidates() {
+                candidateElements.forEach(el => {
+                    const name = el.textContent;
+                    if (selectedNames.includes(name)) {
+                        el.classList.add('selected');
+                    }
+                });
+            }
+            
+            // 开始抽取按钮事件
+            startBtn.addEventListener('click', function() {
+                if (isDrawing) return;
+                
+                const count = parseInt(countInput.value);
+                if (!count || count < 1) {
+                    alert('请输入有效的抽取个数！');
+                    return;
+                }
+                
+                const remainingCountValue = nameList.length - selectedNames.length;
+                if (count > remainingCountValue) {
+                    alert(`剩余候选不足！最多只能抽取 ${remainingCountValue} 个`);
+                    return;
+                }
+                
+                // 重置状态
+                isDrawing = true;
+                startBtn.disabled = true;
+                timeLeft = 5;
+                
+                // 开始候选名单动态变色
+                startCandidateHighlighting();
+                
+                // 开始倒计时
+                countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    countdown.textContent = `倒计时: ${timeLeft}秒`;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(countdownInterval);
+                        finishDrawing(count);
+                    }
+                }, 1000);
+            });
+            
+            // 完成抽取
+            function finishDrawing(count) {
+                stopCandidateHighlighting();
+                
+                // 从剩余候选中随机选择指定数量的名字
+                const remainingCandidates = nameList.filter(name => !selectedNames.includes(name));
+                const newSelectedNames = [];
+                
+                for (let i = 0; i < count; i++) {
+                    if (remainingCandidates.length === 0) break;
+                    
+                    const randomIndex = Math.floor(Math.random() * remainingCandidates.length);
+                    newSelectedNames.push(remainingCandidates[randomIndex]);
+                    remainingCandidates.splice(randomIndex, 1);
+                }
+                
+                // 添加到已抽取名单
+                selectedNames = [...selectedNames, ...newSelectedNames];
+                
+                // 标记已选中的候选
+                markSelectedCandidates();
+                
+                // 显示最终结果
+                newSelectedNames.forEach(name => {
+                    selectedList.innerHTML += `<div class="selected-name">${name}</div>`;
+                });
+                
+                // 更新计数
+                updateCounts();
+                
+                countdown.textContent = '抽取完成！';
+                isDrawing = false;
+                
+                // 如果没有剩余候选了，禁用开始按钮
+                if (nameList.length - selectedNames.length === 0) {
+                    startBtn.disabled = true;
+                } else {
+                    startBtn.disabled = false;
+                }
+            }
+            
+            // 重置按钮事件
+            resetBtn.addEventListener('click', function() {
+                if (isDrawing) return;
+                resetDrawing();
+            });
+            
+            // 拖放功能
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '#eef2ff';
+                uploadArea.style.borderColor = '#2575fc';
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.backgroundColor = '#f8f9ff';
+                uploadArea.style.borderColor = '#6a11cb';
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = '#f8f9ff';
+                uploadArea.style.borderColor = '#6a11cb';
+                
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
