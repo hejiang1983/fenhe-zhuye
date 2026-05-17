@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六年级数学试卷生成系统 - 终极专业版 (密排版)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* ================= UI 界面样式 (现代化风格) ================= */
+        :root {
+            --primary: #4f46e5; --primary-hover: #4338ca;
+            --success: #10b981; --success-hover: #059669;
+            --danger: #ef4444;  --danger-hover: #dc2626;
+            --bg-color: #f1f5f9; --sidebar-bg: #ffffff;
+            --text-main: #1e293b;
+        }
+
+        body {
+            margin: 0; padding: 0; display: flex; height: 100vh;
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* 左侧现代化控制面板 */
+        .sidebar {
+            width: 340px; background-color: var(--sidebar-bg);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.06); padding: 30px 25px;
+            display: flex; flex-direction: column; gap: 20px; z-index: 10; overflow-y: auto;
+        }
+
+        .sidebar-header { text-align: center; margin-bottom: 10px; }
+        .sidebar-header h2 { font-size: 20px; color: var(--text-main); margin: 0 0 8px 0; font-weight: 600; }
+        .sidebar-header p { font-size: 12px; color: #64748b; margin: 0; }
+
+        .control-card {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .control-card label { font-size: 14px; color: #334155; font-weight: 500;}
+        .control-card input { 
+            width: 60px; padding: 6px 10px; text-align: center; border: 1px solid #cbd5e1; 
+            border-radius: 6px; font-size: 14px; outline: none;
+        }
+        .control-card input:focus { border-color: var(--primary); }
+
+        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+        .btn {
+            padding: 12px 15px; color: white; border: none; cursor: pointer; font-size: 14px;
+            font-weight: 500; border-radius: 8px; transition: all 0.2s; display: flex;
+            justify-content: center; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-primary { background-color: var(--primary); }
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
+
+        /* 右侧预览区 (网格背景) */
+        .preview-area {
+            flex: 1; padding: 40px 20px; overflow-y: auto; display: flex;
+            justify-content: center; align-items: flex-start;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;
+        }
+
+        /* ================= 试卷排版样式 (强制宋体，极限压缩间距) ================= */
+        .a4-paper {
+            width: 210mm; min-height: 297mm; background-color: white; padding: 20mm 15mm;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative;
+            font-family: 'SimSun', 'STSong', serif !important; color: #000;
+        }
+
+        .paper-header { text-align: center; margin-bottom: 20px; }
+        .paper-title { font-size: 26px; font-weight: bold; margin-bottom: 15px; letter-spacing: 2px; }
+        .paper-info { font-size: 15px; margin-bottom: 15px; display: flex; justify-content: center; gap: 30px;}
+        .paper-info span { display: inline-flex; align-items: flex-end; }
+        .paper-info .line { display: inline-block; width: 60px; border-bottom: 1px solid #000; margin-left: 5px; }
+
+        .module-title { font-size: 16px; font-weight: bold; margin: 15px 0 10px 0; }
+
+        /* 题目栅格布局 - 极限压缩列间距(gap)以容纳5列和4列 */
+        .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px 3px; margin-bottom: 15px;}
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px 6px; margin-bottom: 15px;}
+
+        /* 题目条目，缩小字号适配高密度排版 */
+        .question-item { font-size: 15px; display: flex; align-items: center; white-space: nowrap;}
+        .equation-item { margin-bottom: 75px; font-size: 14px; } 
+        .step-item { margin-bottom: 75px; font-size: 14px; }
+
+        /* 规范的分数排版 (压缩内边距) */
+        .frac {
+            display: inline-flex; flex-direction: column; justify-content: center;
+            align-items: center; vertical-align: middle; margin: 0 3px;
+            font-size: 0.9em; line-height: 1.05;
+        }
+        .frac .num { border-bottom: 1.2px solid #000; padding: 0 2px 1px 2px; width: 100%; text-align: center; box-sizing: border-box; }
+        .frac .den { padding: 1px 2px 0 2px; width: 100%; text-align: center; box-sizing: border-box; }
+
+        /* 答案样式 */
+        .answer { color: #dc2626; display: none; font-weight: bold; margin-left: 6px; }
+        .show-answers .answer { display: inline-block; }
+        .space-holder { display: inline-block; width: 15px; } /* 缩小留白占位 */
+        .show-answers .space-holder { display: none; }
+        
+        .ans-block { color: #dc2626; display: none; margin-top: 10px; }
+        .show-answers .ans-block { display: block; }
+
+        /* 每一步计算专用行，绝对禁止换行 */
+        .ans-line {
+            display: flex; align-items: center; white-space: nowrap; margin-bottom: 5px;
+        }
+        /* 解方程等号缩进量变小 */
+        .ans-indent { margin-left: 1.8em; }
+        .italic-x { font-family: 'Times New Roman', serif !important; font-style: italic; margin: 0 2px;}
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>计算题出题系统</h2>
+            <p>高密度密排版 (1行5题/4题)</p>
+        </div>
+        
+        <div class="control-card">
+            <label>直接写出得数 (题数)</label>
+            <input type="number" id="num-mod1" value="20" min="5" max="30" step="5">
+        </div>
+        <div class="control-card">
+            <label>脱式与简算 (题数)</label>
+            <input type="number" id="num-mod2" value="8" min="4" max="16" step="4">
+        </div>
+        <div class="control-card">
+            <label>解方程 (题数)</label>
+            <input type="number" id="num-mod3" value="8" min="4" max="16" step="4">
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="generatePaper()">✨ 一键生成新试卷</button>
+            <button class="btn btn-success" id="toggle-ans-btn" onclick="toggleAnswers()">👁️ 显示 / 隐藏答案</button>
+            <button class="btn btn-danger" onclick="downloadPDF('blank')">📄 下载空白试卷 (PDF)</button>
+            <button class="btn btn-danger" style="background-color: #b91c1c;" onclick="downloadPDF('teacher')">📝 下载教师解答版 (PDF)</button>
+        </div>
+    </div>
+
+    <div class="preview-area">
+        <div class="a4-paper" id="paper-content"></div>
+    </div>
+
+    <script>
+        // ================= 1. 核心数学运算引擎 =================
+        function gcd(a, b) {
+            a = Math.abs(a); b = Math.abs(b);
+            return b === 0 ? a : gcd(b, a % b);
+        }
+
+        class Fraction {
+            constructor(n, d) {
+                if (d === 0) throw new Error("分母不能为0");
+                let g = gcd(n, d);
+                this.n = n / g; this.d = d / g;
+                if (this.d < 0) { this.n *= -1; this.d *= -1; }
+            }
+            add(f) { return new Fraction(this.n * f.d + f.n * this.d, this.d * f.d); }
+            sub(f) { return new Fraction(this.n * f.d - f.n * this.d, this.d * f.d); }
+            mul(f) { return new Fraction(this.n * f.n, this.d * f.d); }
+            div(f) { return new Fraction(this.n * f.d, this.d * f.n); }
+            isGreaterThan(f) { return this.n * f.d > f.n * this.d; }
+            
+            toHtml() {
+                if (this.n === 0) return "0";
+                if (this.d === 1) return this.n.toString();
+                return `<div class="frac"><span class="num">${this.n}</span><span class="den">${this.d}</span></div>`;
+            }
+            
+            toRandomFormatHTML(types = ['frac']) {
+                let type = types[Math.floor(Math.random() * types.length)];
+                if (type === 'dec' && (this.d === 2 || this.d === 4 || this.d === 5 || this.d === 8 || this.d === 10 || this.d === 20 || this.d === 25)) {
+                    return (this.n / this.d).toString(); 
+                }
+                if (type === 'pct' && (this.d === 2 || this.d === 4 || this.d === 5 || this.d === 10 || this.d === 20 || this.d === 25 || this.d === 50 || this.d === 100)) {
+                    return (this.n * 100 / this.d) + "%";
+                }
+                return this.toHtml();
+            }
+        }
+
+        function randFrac(maxDen = 10, proper = true) {
+            let d = Math.floor(Math.random() * (maxDen - 2 + 1)) + 2; 
+            let maxN = proper ? d - 1 : d * 2;
+            let n = Math.floor(Math.random() * maxN) + 1;
+            return new Fraction(n, d);
+        }
+        function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        // ================= 2. 题型生成逻辑 =================
+
+        function genMentalMath() {
+            let type = randInt(1, 4); let qStr = "", ans = new Fraction(0,1);
+            
+            if (type === 1) { 
+                let f1 = randFrac(10); let f2 = new Fraction(randInt(1, 9), 10); 
+                if (randInt(0, 1) === 0 || !f1.isGreaterThan(f2)) {
+                    ans = f1.add(f2); qStr = `${f1.toHtml()}＋${f2.toRandomFormatHTML(['dec'])}`;
+                } else {
+                    ans = f1.sub(f2); qStr = `${f1.toHtml()}－${f2.toRandomFormatHTML(['dec'])}`;
+                }
+            } 
+            else if (type === 2) { 
+                let intVal = new Fraction(randInt(1, 5), 1); let pct = new Fraction(randInt(1, 99), 100);
+                ans = intVal.sub(pct); qStr = `${intVal.n}－${pct.toRandomFormatHTML(['pct'])}`;
+            }
+            else if (type === 3) { 
+                let f1 = randFrac(8); let f2 = new Fraction(randInt(1, 4)*25, 100); 
+                if (randInt(0, 1) === 0) {
+                    ans = f1.mul(f2); qStr = `${f1.toHtml()}×${f2.toRandomFormatHTML(['pct', 'dec'])}`;
+                } else {
+                    ans = f1.div(f2); qStr = `${f1.toHtml()}÷${f2.toRandomFormatHTML(['pct', 'dec'])}`;
+                }
+            }
+            else { 
+                let f1 = randFrac(5); let f2 = new Fraction(randInt(1, 5)*20, 100);
+                ans = f1.div(f2); qStr = `${f1.toHtml()}:${f2.toRandomFormatHTML(['pct'])}`;
+            }
+            
+            return `<div class="question-item">${qStr}＝<span class="space-holder"></span><span class="answer">${ans.toHtml()}</span></div>`;
+        }
+
+        function genStepMath() {
+            let qStr = "", ansHTML = ""; let type = randInt(1, 2);
+            
+            if (type === 1) { 
+                let common = randFrac(9); let a = randFrac(7); let sum = randInt(1, 3); 
+                let b = (new Fraction(sum, 1)).sub(a); 
+                qStr = `${a.toHtml()}×${common.toHtml()}＋${b.toRandomFormatHTML(['frac','dec'])}×${common.toRandomFormatHTML(['pct','frac'])}`;
+                let ansObj = common.mul(new Fraction(sum, 1));
+                ansHTML = `<div class="ans-line">＝(${a.toHtml()}＋${b.toHtml()})×${common.toHtml()}</div>
+                           <div class="ans-line">＝${sum}×${common.toHtml()}</div>
+                           <div class="ans-line">＝${ansObj.toHtml()}</div>`;
+            } else { 
+                let f1 = randFrac(5); let f2 = randFrac(5); let f3 = f2.div(new Fraction(randInt(2, 5), 1)); 
+                qStr = `${f1.toHtml()}÷${f2.toHtml()}×${f3.toHtml()}`;
+                let ansObj = f1.div(f2).mul(f3);
+                ansHTML = `<div class="ans-line">＝${f1.toHtml()}×${new Fraction(f2.d, f2.n).toHtml()}×${f3.toHtml()}</div>
+                           <div class="ans-line">＝${ansObj.toHtml()}</div>`;
+            }
+            
+            return `<div class="step-item">
+                        <div class="question-item">${qStr}</div>
+                        <div class="ans-block">${ansHTML}</div>
+                    </div>`;
+        }
+
+        function genEquation() {
+            let qStr = "", ansHTML = ""; let type = randInt(1, 2);
+            
+            if (type === 1) { 
+                let xTerm1 = new Fraction(1, 1); let xTerm2 = new Fraction(randInt(1, 4)*20, 100); 
+                let coeff = xTerm1.sub(xTerm2); let ansObj = randFrac(5, false); let rightSide = coeff.mul(ansObj);
+                
+                qStr = `<span class="italic-x">x</span>－${xTerm2.toRandomFormatHTML(['pct'])}<span class="italic-x">x</span>＝${rightSide.toHtml()}`;
+                ansHTML = `<div class="ans-line">解：${coeff.toHtml()}<span class="italic-x">x</span>＝${rightSide.toHtml()}</div>
+                           <div class="ans-line ans-indent"><span class="italic-x">x</span>＝${ansObj.toHtml()}</div>`;
+            } else { 
+                let a = new Fraction(randInt(2, 8), 1); let b = new Fraction(randInt(2, 8), 1); let c = randFrac(5);
+                qStr = `${a.toHtml()}:${b.toHtml()}＝${c.toHtml()}:<span class="italic-x">x</span>`;
+                let rightSide = b.mul(c); let ansObj = rightSide.div(a);
+                ansHTML = `<div class="ans-line">解：${a.toHtml()}<span class="italic-x">x</span>＝${b.toHtml()}×${c.toHtml()}</div>
+                           <div class="ans-line ans-indent"><span class="italic-x">x</span>＝${ansObj.toHtml()}</div>`;
+            }
+
+            return `<div class="equation-item">
+                        <div class="question-item">${qStr}</div>
+                        <div class="ans-block">${ansHTML}</div>
+                    </div>`;
+        }
+
+        // ================= 3. UI 渲染与试卷生成控制 =================
+        function generatePaper() {
+            let m1Count = parseInt(document.getElementById('num-mod1').value) || 20;
+            let m2Count = parseInt(document.getElementById('num-mod2').value) || 8;
+            let m3Count = parseInt(document.getElementById('num-mod3').value) || 8;
+
+            let html = `
+                <div class="paper-header">
+                    <div class="paper-title">六年级数学计算能力专项测试</div>
+                    <div class="paper-info">
+                        <span>班级：<span class="line"></span></span>
+                        <span>姓名：<span class="line"></span></span>
+                        <span>学号：<span class="line"></span></span>
+                    </div>
+                </div>
+            `;
+
+            html += `<div class="module-title">一、 直接写出得数。</div>`;
+            // 修改为 grid-5 (5列)
+            html += `<div class="grid-5">`;
+            for(let i=0; i<m1Count; i++) html += genMentalMath();
+            html += `</div>`;
+
+            html += `<div class="module-title">二、 脱式计算（能简算的要简算）。</div>`;
+            // 修改为 grid-4 (4列)
+            html += `<div class="grid-4">`;
+            for(let i=0; i<m2Count; i++) html += genStepMath();
+            html += `</div>`;
+
+            html += `<div class="module-title">三、 解方程或比例。</div>`;
+            // 修改为 grid-4 (4列)
+            html += `<div class="grid-4">`;
+            for(let i=0; i<m3Count; i++) html += genEquation();
+            html += `</div>`;
+
+            document.getElementById('paper-content').innerHTML = html;
+        }
+
+        // ================= 4. 辅助交互与 PDF 高清导出 =================
+        function toggleAnswers() {
+            let paper = document.getElementById('paper-content');
+            paper.classList.toggle('show-answers');
+        }
+
+        function downloadPDF(type) {
+            let paper = document.getElementById('paper-content');
+            if (type === 'teacher') paper.classList.add('show-answers');
+            else paper.classList.remove('show-answers');
+
+            let opt = {
+                margin:       0,
+                filename:     type === 'teacher' ? '六年级数学密排卷(教师版).pdf' : '六年级数学密排卷(学生版).pdf',
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 3, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(paper).save();
+        }
+
+        window.onload = generatePaper;
+    </script>
+</body>
+</html>
