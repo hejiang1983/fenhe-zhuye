@@ -132,7 +132,7 @@
 
     <div class="container">
         <div class="panel">
-            <div class="panel-title">第一步：粘贴AI生成的内容</div>
+            <div class="panel-title">第一步：粘贴AI生成的内容或上传文件</div>
             <textarea id="markdown-input" placeholder="把AI生成的内容粘贴到这里..."></textarea>
         </div>
 
@@ -148,6 +148,10 @@
         <button class="btn btn-red" onclick="insertRedHeader()">一键插入红头</button>
         <button class="btn btn-gray" onclick="clearContent()">一键清空</button>
         <button class="btn" onclick="undoEdit()">返回上一步</button>
+        
+        <input type="file" id="file-upload" accept=".md,.txt,.markdown" style="display: none;" onchange="handleFileUpload(event)">
+        <button class="btn" style="background: #2980b9;" onclick="document.getElementById('file-upload').click()">上传 MD 文件</button>
+        
         <button class="btn btn-primary" onclick="exportToWord()">直接导出为 Word</button>
     </div>
 
@@ -185,6 +189,25 @@
             saveHistory(''); 
             updatePreview();
             input.focus();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const input = document.getElementById('markdown-input');
+                
+                input.value = content;
+                saveHistory(content);
+                updatePreview();
+                
+                event.target.value = '';
+            };
+            
+            reader.readAsText(file, 'UTF-8');
         }
 
         // ==========================================
