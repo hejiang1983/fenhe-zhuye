@@ -31,7 +31,7 @@
             max-width: 1000px;
             border-radius: 24px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding-bottom: 30px; /* 略微增加了底部内边距，保持视觉平衡 */
+            padding-bottom: 30px;
             backdrop-filter: blur(10px);
         }
 
@@ -169,6 +169,22 @@
             border-color: #d0d7ff;
         }
 
+        /* 底部统计区域样式 */
+        .footer-stats {
+            text-align: center;
+            margin: 40px 30px 0;
+            padding-top: 15px;
+            font-size: 13px;
+            color: #888;
+            border-top: 1px dashed #eee;
+        }
+
+        .footer-stats span {
+            font-weight: 600;
+            color: #3f51b5;
+            margin: 0 4px;
+        }
+
         /* 移动端微调 */
         @media (max-width: 600px) {
             body {
@@ -182,6 +198,9 @@
             }
             .banner {
                 margin: 10px 10px 0 10px;
+            }
+            .footer-stats {
+                margin: 30px 15px 0;
             }
         }
     </style>
@@ -264,24 +283,110 @@
             </div>
 
         </main>
+
+        <div class="footer-stats" id="view-stats">
+            <i class="fas fa-chart-line" style="margin-right: 5px;"></i>
+            今日访问量：<span id="today-views"><i class="fas fa-spinner fa-spin"></i></span> | 
+            总访问量：<span id="total-views"><i class="fas fa-spinner fa-spin"></i></span>
+        </div>
+
     </div>
 
     <script>
+        // 抽屉动画逻辑
         function toggleAccordion(element) {
             const item = element.parentElement;
             const content = item.querySelector('.sub-links-wrapper');
             const isActive = item.classList.contains('active');
 
-            // 切换当前点击项的状态
             if (!isActive) {
                 item.classList.add('active');
-                // 通过内容的真实高度实现丝滑动画
                 content.style.maxHeight = content.scrollHeight + "px";
             } else {
                 item.classList.remove('active');
                 content.style.maxHeight = "0";
             }
         }
+
+        // 访问量记录与计算逻辑
+        window.addEventListener('DOMContentLoaded', () => {
+            const submitApi = 'https://quickform.cn/api/loyovs5edw';
+            const getAllApi = 'https://quickform.cn/api/loyovs5edw/all';
+            
+            const now = new Date();
+            // 匹配格式例如 2026-05-20 或 2026/5/20
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const dateStr1 = `${year}-${month < 10 ? '0'+month : month}-${date < 10 ? '0'+date : date}`;
+            const dateStr2 = `${year}/${month}/${date}`;
+
+            const payload = {
+                action: 'page_view',
+                url: window.location.href,
+                time: now.toLocaleString('zh-CN')
+            };
+
+            // 🌟 核心升级：智能寻找返回数据中的“列表数组”
+            function findArrayInResponse(obj) {
+                if (Array.isArray(obj)) return obj;
+                if (obj && typeof obj === 'object') {
+                    // 查第一层 (比如 obj.data)
+                    for (let key in obj) {
+                        if (Array.isArray(obj[key])) return obj[key];
+                    }
+                    // 查第二层 (比如 obj.data.list 或 obj.data.records)
+                    for (let key in obj) {
+                        if (obj[key] && typeof obj[key] === 'object') {
+                            for (let subKey in obj[key]) {
+                                if (Array.isArray(obj[key][subKey])) return obj[key][subKey];
+                            }
+                        }
+                    }
+                }
+                return []; // 如果实在找不到，返回空数组
+            }
+
+            // 1. 先静默提交本次访问数据
+            fetch(submitApi, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                // 2. 延迟 500 毫秒再去拉取所有数据，给服务器一点写入时间
+                return new Promise(resolve => {
+                    setTimeout(() => resolve(fetch(getAllApi)), 500);
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Quickform 返回的数据:", data); // 保留这行以便在 F12 控制台中排查问题
+                
+                // 使用智能函数提取记录
+                const records = findArrayInResponse(data);
+                const totalViews = records.length;
+                let todayViews = 0;
+
+                // 遍历所有数据，统计今日
+                records.forEach(record => {
+                    // 将整条记录转为字符串进行模糊匹配，确保无论时间戳藏在哪个字段都能被抓到
+                    const recordStr = JSON.stringify(record);
+                    if (recordStr.includes(dateStr1) || recordStr.includes(dateStr2)) {
+                        todayViews++;
+                    }
+                });
+
+                // 更新前端页面数字
+                document.getElementById('today-views').innerText = todayViews > 0 ? todayViews : 1;
+                document.getElementById('total-views').innerText = totalViews > 0 ? totalViews : 1;
+            })
+            .catch(error => {
+                console.error('统计加载失败:', error);
+                document.getElementById('today-views').innerText = '-';
+                document.getElementById('total-views').innerText = '-';
+            });
+        });
     </script>
 </body>
 </html>
