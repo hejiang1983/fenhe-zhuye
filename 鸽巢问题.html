@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽屉原理互动探究</title>
+    <style>
+        :root {
+            --primary: #2196F3;
+            --drawer-frame: #795548;
+            --drawer-bg: #D7CCC8;
+            --text-dark: #333;
+        }
+        
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            color: var(--text-dark);
+        }
+
+        .container {
+            background: #fff;
+            max-width: 950px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        /* 顶部题目区 */
+        .header {
+            background: #e3f2fd;
+            padding: 25px;
+            border-bottom: 2px solid #bbdefb;
+        }
+        .question {
+            font-size: 18px;
+            color: #1565C0;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .q-badge {
+            display: inline-block;
+            background: #64b5f6;
+            color: white;
+            width: 32px;
+            height: 32px;
+            text-align: center;
+            line-height: 32px;
+            border-radius: 8px;
+            margin-right: 12px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .highlight-num {
+            font-weight: bold;
+            color: #d32f2f;
+            font-size: 22px;
+            margin: 0 4px;
+        }
+
+        /* 控制栏 */
+        .toolbar {
+            padding: 15px 25px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+        .toolbar input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .btn {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+        }
+        .btn:hover { background: #1976D2; transform: translateY(-1px); }
+        .btn:active { transform: translateY(1px); }
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            box-shadow: none;
+        }
+        .btn-outline:hover { background: #e3f2fd; }
+        .btn-action { background: #FF9800; box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3); }
+        .btn-action:hover { background: #F57C00; }
+
+        /* 工作区：左书堆 + 右书桌 */
+        .workspace {
+            display: flex;
+            padding: 30px 25px;
+            gap: 30px;
+        }
+        
+        .books-area {
+            flex: 1;
+            background: #fff;
+            border: 2px dashed #90caf9;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 8px;
+            min-height: 300px;
+            position: relative;
+        }
+        .books-area::before {
+            content: '待分配的书本 (支持拖拽，或直接点击)';
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: white;
+            padding: 0 10px;
+            color: #64b5f6;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* 书本样式 */
+        .book {
+            width: 24px;
+            height: 80px;
+            border-radius: 3px 6px 6px 3px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2), inset 3px 0 0 rgba(255,255,255,0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            z-index: 10;
+        }
+        .book:hover { transform: translateY(-3px) scale(1.05); box-shadow: 3px 5px 8px rgba(0,0,0,0.3); }
+        .book:active { cursor: grabbing; transform: scale(0.95); }
+        
+        .book:nth-child(5n+1) { background-color: #EF5350; } /* 红 */
+        .book:nth-child(5n+2) { background-color: #42A5F5; } /* 蓝 */
+        .book:nth-child(5n+3) { background-color: #66BB6A; } /* 绿 */
+        .book:nth-child(5n+4) { background-color: #FFA726; } /* 橙 */
+        .book:nth-child(5n+5) { background-color: #AB47BC; } /* 紫 */
+
+        /* 抽屉区 */
+        .desk-area {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #F5F5F5;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #E0E0E0;
+        }
+        
+        .drawer-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .drawer-cap {
+            background: var(--drawer-frame);
+            color: white;
+            width: 100%;
+            text-align: center;
+            padding: 4px 0;
+            border-radius: 6px 6px 0 0;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .drawer {
+            width: calc(100% - 10px);
+            background: var(--drawer-bg);
+            border: 4px solid var(--drawer-frame);
+            border-top: none;
+            min-height: 90px;
+            border-radius: 0 0 8px 8px;
+            padding: 15px 5px 5px 5px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end; /* 让书本贴底 */
+            gap: 6px;
+            transition: all 0.3s;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.1);
+        }
+        .drawer.drag-over {
+            background: #BCAAA4;
+        }
+        .drawer.highlight {
+            background: #FFE0B2;
+            border-color: #F57C00;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.4), inset 0 5px 10px rgba(0,0,0,0.05);
+        }
+
+        /* 底部解析区 */
+        .analysis {
+            padding: 25px;
+            background: #FFFDE7;
+            border-top: 1px solid #FFF59D;
+        }
+        
+        .math-expr {
+            text-align: center;
+            font-size: 26px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #D32F2F;
+            font-weight: bold;
+            margin: 10px 0 30px 0;
+        }
+        
+        .students {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .student-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            font-size: 14.5px;
+            line-height: 1.6;
+            color: #555;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .student-card.active-think {
+            border-color: #4CAF50;
+            background: #E8F5E9;
+            transform: translateY(-5px);
+        }
+        
+        .avatar {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+        .calc-val {
+            font-weight: bold;
+            color: #E65100;
+            padding: 0 2px;
+        }
+
+        @media (max-width: 768px) {
+            .workspace { flex-direction: column; }
+            .desk-area { width: auto; }
+            .students { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 题目区 -->
+    <div class="header">
+        <p class="question">
+            <span class="q-badge">2</span> 
+            把 <span class="highlight-num" id="q-books">7</span> 本书放进 3 个抽屉，不管怎么放，总有 1 个抽屉里至少放进 <span class="highlight-num" id="q-min">3</span> 本书。为什么？
+        </p>
+    </div>
+    
+    <!-- 控制栏 -->
+    <div class="toolbar">
+        <span style="font-weight:bold; color:#555;">快捷验证：</span>
+        <button class="btn btn-outline" onclick="setBooks(7)">7 本</button>
+        <button class="btn btn-outline" onclick="setBooks(8)">8 本</button>
+        <button class="btn btn-outline" onclick="setBooks(10)">10 本</button>
+        
+        <span style="margin: 0 10px; color: #ddd;">|</span>
+        
+        <label for="book-count">自定义数量:</label>
+        <input type="number" id="book-count" value="7" min="1" max="30">
+        <button class="btn" onclick="initSimulation()">重置刷新</button>
+        
+        <div style="flex-grow: 1;"></div>
+        
+        <button class="btn btn-action" onclick="autoDistribute()">▶ 尽量平均分 (自动演示)</button>
+    </div>
+    
+    <!-- 交互工作区 -->
+    <div class="workspace">
+        <div class="books-area" id="books-pool">
+            <!-- JavaScript 动态生成书本 -->
+        </div>
+        
+        <div class="desk-area">
+            <div class="drawer-wrapper">
+                <div class="drawer-cap">抽屉 1</div>
+                <div class="drawer" id="drawer-0"></div>
+            </div>
+            <div class="drawer-wrapper">
+                <div class="drawer-cap">抽屉 2</div>
+                <div class="drawer" id="drawer-1"></div>
+            </div>
+            <div class="drawer-wrapper">
+                <div class="drawer-cap">抽屉 3</div>
+                <div class="drawer" id="drawer-2"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 算理与分析区 -->
+    <div class="analysis">
+        <div class="math-expr" id="math-formula">
+            7 ÷ 3 = 2 (本) …… 1 (本)
+        </div>
+        
+        <div class="students">
+            <div class="student-card" id="stu-1">
+                <div class="avatar">👩🏻 同学 A (随便放放看)</div>
+                <div>
+                    我可以自己动手试试：<br>
+                    当前装得最多的抽屉里，放了 <span class="calc-val" id="current-max-books" style="font-size:18px;">0</span> 本书。
+                </div>
+            </div>
+            
+            <div class="student-card" id="stu-2">
+                <div class="avatar">👦🏻 同学 B (反证法假设)</div>
+                <div id="stu-2-text">
+                    <!-- JS动态填充 -->
+                </div>
+            </div>
+            
+            <div class="student-card" id="stu-3">
+                <div class="avatar">👧🏻 同学 C (平均分思路)</div>
+                <div id="stu-3-text">
+                    <!-- JS动态填充 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 核心变量
+    let numBooks = 7;
+    const numDrawers = 3;
+    let isAnimating = false;
+
+    // DOM 元素引用
+    const pool = document.getElementById('books-pool');
+    const drawers = [
+        document.getElementById('drawer-0'),
+        document.getElementById('drawer-1'),
+        document.getElementById('drawer-2')
+    ];
+    
+    // 初始化系统
+    function initSimulation() {
+        if (isAnimating) return;
+        
+        // 读取输入框数值
+        let inputVal = parseInt(document.getElementById('book-count').value);
+        if (isNaN(inputVal) || inputVal < 1) inputVal = 7;
+        numBooks = inputVal;
+        document.getElementById('book-count').value = numBooks;
+
+        // 计算抽屉原理的核心结论：至少放进几本？(即 向上取整(书数/抽屉数))
+        const k = Math.ceil(numBooks / numDrawers);
+        
+        // 更新顶部题目文案
+        document.getElementById('q-books').innerText = numBooks;
+        document.getElementById('q-min').innerText = k;
+
+        // 清空场地
+        pool.innerHTML = '';
+        drawers.forEach(d => {
+            d.innerHTML = '';
+            d.classList.remove('highlight');
+        });
+
+        // 重新生成书本
+        for (let i = 1; i <= numBooks; i++) {
+            const book = document.createElement('div');
+            book.className = 'book';
+            book.draggable = true;
+            book.id = 'book-' + i;
+            
+            // 绑定拖拽事件 (针对电脑端)
+            book.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', e.target.id);
+                setTimeout(() => book.style.opacity = '0.5', 0);
+            });
+            book.addEventListener('dragend', () => book.style.opacity = '1');
+
+            // 绑定点击事件 (方便移动端/直接点击快速分配)
+            book.addEventListener('click', () => {
+                if (isAnimating) return;
+                
+                if (book.parentElement === pool) {
+                    // 如果在书堆里，放入目前书最少的抽屉
+                    let targetDrawer = drawers[0];
+                    let minCount = targetDrawer.children.length;
+                    for(let j=1; j<drawers.length; j++){
+                        if(drawers[j].children.length < minCount) {
+                            minCount = drawers[j].children.length;
+                            targetDrawer = drawers[j];
+                        }
+                    }
+                    targetDrawer.appendChild(book);
+                } else {
+                    // 如果在抽屉里，拿回书堆
+                    pool.appendChild(book);
+                }
+                updateStatus();
+            });
+
+            pool.appendChild(book);
+        }
+
+        updateStatus();
+    }
+
+    // 设置容器的拖拽接收规则
+    [pool, ...drawers].forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('drag-over');
+        });
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('drag-over');
+        });
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            
+            const bookId = e.dataTransfer.getData('text/plain');
+            const book = document.getElementById(bookId);
+            if (book) {
+                zone.appendChild(book);
+                updateStatus();
+            }
+        });
+    });
+
+    // 快捷按钮触发
+    function setBooks(n) {
+        document.getElementById('book-count').value = n;
+        initSimulation();
+    }
+
+    // 状态与解析文案更新
+    function updateStatus() {
+        const q = Math.floor(numBooks / numDrawers); // 商
+        const r = numBooks % numDrawers;             // 余数
+        const k = Math.ceil(numBooks / numDrawers);  // 抽屉原理临界值
+
+        // 1. 更新当前手工摆放状态
+        let maxInDrawer = 0;
+        let maxDrawers = [];
+        
+        drawers.forEach(d => d.classList.remove('highlight'));
+        drawers.forEach(d => {
+            const count = d.children.length;
+            if (count > maxInDrawer) {
+                maxInDrawer = count;
+                maxDrawers = [d];
+            } else if (count === maxInDrawer && count > 0) {
+                maxDrawers.push(d);
+            }
+        });
+        
+        document.getElementById('current-max-books').innerText = maxInDrawer;
+
+        // 如果某个抽屉达到了理论最少应有的值，高亮它以作提示
+        if (maxInDrawer >= k) {
+            maxDrawers.forEach(d => d.classList.add('highlight'));
+        }
+
+        // 2. 更新数学算式显示
+        let formulaHtml = `${numBooks} ÷ ${numDrawers} = ${q} (本)`;
+        if (r > 0) formulaHtml += ` …… ${r} (本)`;
+        document.getElementById('math-formula').innerText = formulaHtml;
+
+        // 3. 更新 同学B 反证法文案
+        const assumedMax = k - 1;
+        const totalIfAssumed = assumedMax * numDrawers;
+        document.getElementById('stu-2-text').innerHTML = 
+            `如果每个抽屉最多放 <span class="calc-val">${assumedMax}</span> 本，那么 3 个抽屉最多只能放 <span class="calc-val">${totalIfAssumed}</span> 本。
+             可题目要求放的是 <span class="calc-val">${numBooks}</span> 本书，根本放不下。所以……肯定有抽屉放了至少 <span class="calc-val">${k}</span> 本。`;
+
+        // 4. 更新 同学C 平均分文案
+        let stu3Html = `把 <span class="calc-val">${numBooks}</span> 本书分成 3 份，尽量平均分，每个抽屉先放 <span class="calc-val">${q}</span> 本。`;
+        if (r > 0) {
+            stu3Html += `<br>多出的 <span class="calc-val">${r}</span> 本无论怎么放，总有 ${r} 个抽屉要再塞进 1 本，所以至少有一个抽屉有 <span class="calc-val">${k}</span> 本。`;
+        } else {
+            stu3Html += `<br>正好分完，所以必然有抽屉放了 <span class="calc-val">${k}</span> 本。`;
+        }
+        document.getElementById('stu-3-text').innerHTML = stu3Html;
+
+        // 卡片状态高亮：书全部分完时，结论卡片亮起
+        const isFinished = pool.children.length === 0;
+        document.getElementById('stu-2').classList.toggle('active-think', isFinished);
+        document.getElementById('stu-3').classList.toggle('active-think', isFinished);
+    }
+
+    // “尽量平均分” 自动演示动画
+    async function autoDistribute() {
+        if (isAnimating) return;
+        isAnimating = true;
+        
+        // 先重置回初始状态
+        initSimulation();
+        isAnimating = true; // 锁定状态
+
+        const books = Array.from(pool.children);
+        
+        // 一本一本地轮流放入抽屉，模仿“平均分”的动作
+        for (let i = 0; i < books.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 350));
+            const book = books[i];
+            const targetDrawer = drawers[i % numDrawers];
+            targetDrawer.appendChild(book);
+            updateStatus();
+        }
+        
+        isAnimating = false;
+    }
+
+    // 页面加载完毕执行初始化
+    window.onload = initSimulation;
+</script>
+
+</body>
+</html>
